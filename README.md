@@ -132,6 +132,10 @@ tail -f logs/dev.log | grep advisor_spread_capture
 Each environment can have their own configuration. Take a look at the [example 
 dev configuration](config/dev.exs.example) for available options.
 
+## Contributing
+
+[link to](CONTRIBUTING.md)
+
 ## Authors
 
 * Alex Kwiatkowski - alex+git@rival-studios.com
