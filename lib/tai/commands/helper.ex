@@ -6,6 +6,9 @@ defmodule Tai.Commands.Helper do
   @spec help :: no_return
   defdelegate help, to: Tai.Commands.Info
 
+  @spec help :: no_return
+  defdelegate dashboard, to: Tai.Commands.Dashboard
+
   @spec balance :: no_return
   defdelegate balance, to: Tai.Commands.Balance
 

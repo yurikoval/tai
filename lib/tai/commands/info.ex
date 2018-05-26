@@ -5,6 +5,7 @@ defmodule Tai.Commands.Info do
 
   def help do
     IO.puts("""
+    * dashboard
     * balance
     * products
     * markets
