@@ -8,6 +8,7 @@ defmodule Tai do
     children = [
       Tai.PubSub,
       {Tai.Events, config.event_registry_partitions},
+      Tai.EventsLogger,
       {Tai.Settings, settings},
       Tai.Exchanges.ProductStore,
       Tai.Exchanges.FeeStore,

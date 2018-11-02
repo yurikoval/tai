@@ -1,5 +1,5 @@
 defmodule Tai.Events do
-  @type event :: Tai.Events.HydratedProducts.t()
+  @type event :: Tai.Events.HydratedProducts.t() | Tai.Events.UpsertAssetBalance.t()
 
   @spec child_spec(opts :: term) :: Supervisor.child_spec()
   def child_spec(opts) do
@@ -17,6 +17,13 @@ defmodule Tai.Events do
     Registry.start_link(keys: :duplicate, name: __MODULE__, partitions: partitions)
   end
 
+  @spec firehose_subscribe ::
+          {:ok, pid}
+          | {:error, {:already_registered, pid} | :event_not_registered}
+  def firehose_subscribe do
+    Registry.register(__MODULE__, :firehose, [])
+  end
+
   @spec subscribe(event_type :: atom) ::
           {:ok, pid}
           | {:error, {:already_registered, pid} | :event_not_registered}
@@ -30,6 +37,10 @@ defmodule Tai.Events do
 
     Registry.dispatch(__MODULE__, event_type, fn entries ->
       for {pid, _} <- entries, do: send(pid, event)
+    end)
+
+    Registry.dispatch(__MODULE__, :firehose, fn entries ->
+      for {pid, _} <- entries, do: send(pid, {Tai.Event, event})
     end)
   end
 end

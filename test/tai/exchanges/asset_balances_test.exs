@@ -26,23 +26,35 @@ defmodule Tai.Exchanges.AssetBalancesTest do
                )
     end
 
-    test "logs the free & locked balance with normal type formatting" do
-      log_msg =
-        capture_log(fn ->
-          balance =
-            Tai.Exchanges.AssetBalance.new(
-              :my_test_exchange,
-              :my_test_account,
-              :btc,
-              0.00000001,
-              2
-            )
+    test "broadcasts an event" do
+      # log_msg =
+      #   capture_log(fn ->
 
-          :ok = Tai.Exchanges.AssetBalances.upsert(balance)
-          :timer.sleep(100)
-        end)
+      Tai.Events.firehose_subscribe()
 
-      assert log_msg =~ ~r/\[upsert:my_test_exchange,my_test_account,btc,0.000000010,2\]/
+      balance =
+        Tai.Exchanges.AssetBalance.new(
+          :my_test_exchange,
+          :my_test_account,
+          :btc,
+          0.00000001,
+          2
+        )
+
+      :ok = Tai.Exchanges.AssetBalances.upsert(balance)
+      # :timer.sleep(100)
+      # end)
+
+      # assert log_msg =~ ~r/\[upsert:my_test_exchange,my_test_account,btc,0.000000010,2\]/
+      assert_receive {Tai.Event,
+       %Tai.Events.UpsertAssetBalance{
+         balance: ^balance
+         # venue_id: :my_test_exchange,
+         # account_id: :my_test_account,
+         # asset: :btc,
+         # free: "0.000000010",
+         # locked: "2"
+       }}
     end
   end
 
