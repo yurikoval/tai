@@ -11,6 +11,21 @@ defmodule Tai.EventsLogger do
     {:ok, state}
   end
 
+  # TODO: can't automatically serialize price point tuple to json
+  def handle_info({Tai.Event, %Tai.Events.OrderBookSnapshot{} = event}, state) do
+    %{
+      type: "Tai.OrderBookSnapshot",
+      data: %{
+        venue_id: event.venue_id,
+        symbol: event.symbol
+      }
+    }
+    |> Poison.encode!()
+    |> Logger.info(tid: __MODULE__)
+
+    {:noreply, state}
+  end
+
   def handle_info({Tai.Event, event}, state) do
     event
     |> Poison.encode!()
