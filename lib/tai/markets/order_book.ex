@@ -76,6 +76,9 @@ defmodule Tai.Markets.OrderBook do
   end
 
   def handle_call({:replace, snapshot}, _from, state) do
+    # require Logger
+    # Logger.info("[snapshot:#{state.feed_id},#{state.symbol},#{inspect(snapshot)}]")
+
     PubSub.broadcast(
       {:order_book_snapshot, state.feed_id, state.symbol},
       {:order_book_snapshot, state.feed_id, state.symbol, snapshot}
