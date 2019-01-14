@@ -39,6 +39,8 @@ defmodule Tai.Venues.Adapter do
               {:ok, create_response} | {:error, create_order_error_reason}
   @callback amend_order(venue_order_id, amend_attrs, credentials) ::
               {:ok, amend_response} | {:error, amend_order_error_reason}
+  @callback amend_all_orders([{venue_order_id, amend_attrs}], credentials) ::
+              {:ok, amend_response} | {:error, amend_order_error_reason}
   @callback cancel_order(venue_order_id, credentials) ::
               {:ok, cancel_response} | {:error, cancel_order_error_reason}
 

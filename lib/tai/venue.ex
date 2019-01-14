@@ -63,6 +63,19 @@ defmodule Tai.Venue do
     venue_adapter.adapter.amend_order(order.venue_order_id, attrs, credentials)
   end
 
+  @type order_with_amend_attrs :: {order, amend_attrs}
+  @spec amend_all_orders([order_with_amend_attrs]) :: term
+  def amend_all_orders(
+        [{order, attrs} | _] = orders_to_amend,
+        adapters \\ Tai.Venues.Config.parse_adapters()
+      ) do
+    {venue_adapter, credentials} = find_venue_adapter_and_credentials(order, adapters)
+
+    orders_to_amend
+    |> Enum.map(fn {order, attrs} -> {order.venue_order_id, attrs} end)
+    |> venue_adapter.adapter.amend_all_orders(credentials)
+  end
+
   @type cancel_response :: Tai.Trading.OrderResponses.Cancel.t()
   @type cancel_order_error_reason ::
           :not_implemented

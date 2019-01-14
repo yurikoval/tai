@@ -21,6 +21,10 @@ defmodule Tai.VenueAdapters.Gdax do
     {:error, :not_implemented}
   end
 
+  def amend_all_orders(_orders_with_attrs, _credentials) do
+    {:error, :not_implemented}
+  end
+
   def cancel_order(_venue_order_id, _credentials) do
     {:error, :not_implemented}
   end
