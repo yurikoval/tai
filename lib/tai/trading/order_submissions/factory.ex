@@ -43,7 +43,8 @@ defmodule Tai.Trading.OrderSubmissions.Factory do
       status: :enqueued,
       close: submission.close,
       enqueued_at: Timex.now(),
-      order_updated_callback: submission.order_updated_callback
+      order_updated_callback: submission.order_updated_callback,
+      meta: submission.meta
     }
   end
 

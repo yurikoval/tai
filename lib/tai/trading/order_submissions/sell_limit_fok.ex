@@ -31,5 +31,6 @@ defmodule Tai.Trading.OrderSubmissions.SellLimitFok do
     qty
     close
     order_updated_callback
+    meta
   )a
 end

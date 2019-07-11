@@ -47,7 +47,8 @@ defmodule Tai.Trading.Order do
           last_received_at: DateTime.t() | nil,
           last_venue_timestamp: DateTime.t() | nil,
           updated_at: DateTime.t() | nil,
-          order_updated_callback: fun | nil
+          order_updated_callback: fun | nil,
+          meta: any | nil
         }
 
   @enforce_keys ~w(
@@ -92,5 +93,6 @@ defmodule Tai.Trading.Order do
     last_venue_timestamp
     updated_at
     order_updated_callback
+    meta
   )a
 end

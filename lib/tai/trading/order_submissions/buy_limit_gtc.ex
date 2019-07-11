@@ -34,5 +34,6 @@ defmodule Tai.Trading.OrderSubmissions.BuyLimitGtc do
     post_only
     close
     order_updated_callback
+    meta
   )a
 end

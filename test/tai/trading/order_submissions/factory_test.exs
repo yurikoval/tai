@@ -30,6 +30,7 @@ defmodule Tai.Trading.OrderSubmissions.FactoryTest do
         assert order.status == :enqueued
         assert order.close == true
         assert %DateTime{} = order.enqueued_at
+        assert order.meta == :test_meta
       end
 
       test "#{side} fok orders" do
@@ -54,6 +55,7 @@ defmodule Tai.Trading.OrderSubmissions.FactoryTest do
         assert order.status == :enqueued
         assert order.close == true
         assert %DateTime{} = order.enqueued_at
+        assert order.meta == :test_meta
       end
 
       test "#{side} ioc orders" do
@@ -78,6 +80,7 @@ defmodule Tai.Trading.OrderSubmissions.FactoryTest do
         assert order.status == :enqueued
         assert order.close == true
         assert %DateTime{} = order.enqueued_at
+        assert order.meta == :test_meta
       end
     end)
   end
@@ -91,7 +94,8 @@ defmodule Tai.Trading.OrderSubmissions.FactoryTest do
       price: Decimal.new("100.1"),
       qty: Decimal.new("1.1"),
       post_only: post_only,
-      close: true
+      close: true,
+      meta: :test_meta
     }
   end
 
@@ -104,7 +108,8 @@ defmodule Tai.Trading.OrderSubmissions.FactoryTest do
       price: Decimal.new("50000.5"),
       qty: Decimal.new("0.1"),
       post_only: post_only,
-      close: true
+      close: true,
+      meta: :test_meta
     }
   end
 
@@ -116,7 +121,8 @@ defmodule Tai.Trading.OrderSubmissions.FactoryTest do
       product_type: :spot,
       price: Decimal.new("100.1"),
       qty: Decimal.new("1.1"),
-      close: true
+      close: true,
+      meta: :test_meta
     }
   end
 
@@ -128,7 +134,8 @@ defmodule Tai.Trading.OrderSubmissions.FactoryTest do
       product_type: :spot,
       price: Decimal.new("50000.5"),
       qty: Decimal.new("0.1"),
-      close: true
+      close: true,
+      meta: :test_meta
     }
   end
 
@@ -140,7 +147,8 @@ defmodule Tai.Trading.OrderSubmissions.FactoryTest do
       product_type: :spot,
       price: Decimal.new("100.1"),
       qty: Decimal.new("1.1"),
-      close: true
+      close: true,
+      meta: :test_meta
     }
   end
 
@@ -152,7 +160,8 @@ defmodule Tai.Trading.OrderSubmissions.FactoryTest do
       product_type: :spot,
       price: Decimal.new("50000.5"),
       qty: Decimal.new("0.1"),
-      close: true
+      close: true,
+      meta: :test_meta
     }
   end
 end
