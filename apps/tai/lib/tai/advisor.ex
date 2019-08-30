@@ -17,11 +17,12 @@ defmodule Tai.Advisor do
             products: [product],
             config: config,
             store: run_store,
-            trades: list
+            trades: list,
+            subscribe_to: list
           }
 
-    @enforce_keys ~w(advisor_id config group_id products store trades)a
-    defstruct ~w(advisor_id config group_id market_quotes products store trades)a
+    @enforce_keys ~w(advisor_id config group_id products store trades subscribe_to)a
+    defstruct ~w(advisor_id config group_id market_quotes products store trades subscribe_to)a
   end
 
   @type venue_id :: Tai.Venues.Adapter.venue_id()
@@ -59,7 +60,6 @@ defmodule Tai.Advisor do
       use GenServer
 
       @behaviour Tai.Advisor
-      @subscribe_to unquote(subscribe_to)
 
       def start_link(
             group_id: group_id,
@@ -71,7 +71,6 @@ defmodule Tai.Advisor do
           ) do
         name = Tai.Advisor.to_name(group_id, advisor_id)
         market_quotes = %Tai.Advisors.MarketQuotes{data: %{}}
-        config = Map.put(config || %{}, :subscribe_to, @subscribe_to)
 
         state = %State{
           group_id: group_id,
@@ -80,7 +79,8 @@ defmodule Tai.Advisor do
           market_quotes: market_quotes,
           config: config,
           store: store,
-          trades: trades
+          trades: trades,
+          subscribe_to: unquote(subscribe_to)
         }
 
         GenServer.start_link(__MODULE__, state, name: name)
@@ -109,7 +109,6 @@ defmodule Tai.Advisor do
       @doc false
       def handle_info({action, venue_id, product_symbol, changes}, state) do
         state
-        |> Map.get(:config)
         |> Map.get(:subscribe_to)
         |> Enum.reduce({%{}, state}, fn mod, acc ->
           apply(mod, :respond, [acc, {action, venue_id, product_symbol, changes}])
