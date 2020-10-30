@@ -36,7 +36,7 @@ defmodule Tai.Markets.Asset do
   end
 
   @zero Decimal.new(0)
-  def zero?(%Asset{val: val}), do: val |> Decimal.cmp(@zero) == :eq
+  def zero?(%Asset{val: val}), do: val |> Decimal.compare(@zero) == :eq
 end
 
 defimpl String.Chars, for: Tai.Markets.Asset do
