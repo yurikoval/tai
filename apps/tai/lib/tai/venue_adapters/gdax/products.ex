@@ -44,9 +44,9 @@ defmodule Tai.VenueAdapters.Gdax.Products do
        ) do
     symbol = Tai.Symbol.build(base_currency, quote_currency)
     {:ok, status} = Tai.VenueAdapters.Gdax.ProductStatus.normalize(exchange_status)
-    base_min_size = raw_base_min_size |> Decimal.cast() |> Decimal.normalize()
-    base_max_size = raw_base_max_size |> Decimal.cast() |> Decimal.normalize()
-    quote_increment = raw_quote_increment |> Decimal.cast() |> Decimal.normalize()
+    base_min_size = raw_base_min_size |> Decimal.cast() |> elem(1) |> Decimal.normalize()
+    base_max_size = raw_base_max_size |> Decimal.cast() |> elem(1) |> Decimal.normalize()
+    quote_increment = raw_quote_increment |> Decimal.cast() |> elem(1) |> Decimal.normalize()
     min_notional = Decimal.mult(base_min_size, quote_increment) |> Decimal.normalize()
 
     %Tai.Venues.Product{

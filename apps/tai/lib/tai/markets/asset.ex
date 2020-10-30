@@ -12,7 +12,7 @@ defmodule Tai.Markets.Asset do
   defstruct ~w(val symbol)a
 
   def new(val, symbol) do
-    asset_val = val |> Decimal.cast()
+    {:ok, asset_val} = val |> Decimal.cast()
     %Asset{val: asset_val, symbol: symbol}
   end
 

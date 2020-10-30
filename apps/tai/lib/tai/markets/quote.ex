@@ -43,8 +43,8 @@ defmodule Tai.Markets.Quote do
 
   @two Decimal.new(2)
   def mid_price(%PricePoint{} = bid, %PricePoint{} = ask) do
-    ask_price = Decimal.cast(ask.price)
-    bid_price = Decimal.cast(bid.price)
+    {:ok, ask_price} = Decimal.cast(ask.price)
+    {:ok, bid_price} = Decimal.cast(bid.price)
 
     mid =
       ask_price
