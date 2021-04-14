@@ -181,6 +181,7 @@ defmodule Tai.Venues.Adapters.AmendOrderTest do
     struct(Tai.Trading.Order, %{
       client_id: Ecto.UUID.generate(),
       venue_id: venue_id,
+      venue_product_symbol: venue_id |> venue_product_symbol,
       credential_id: :main,
       product_symbol: venue_id |> product_symbol,
       side: side,
@@ -188,7 +189,8 @@ defmodule Tai.Venues.Adapters.AmendOrderTest do
       qty: venue_id |> qty(side),
       cumulative_qty: Decimal.new(0),
       time_in_force: :gtc,
-      post_only: true
+      post_only: true,
+      product_type: venue_id |> product_type()
     })
   end
 
@@ -196,6 +198,7 @@ defmodule Tai.Venues.Adapters.AmendOrderTest do
     struct(Tai.Trading.Order, %{
       venue_order_id: amend_response.id,
       venue_id: order.venue_id,
+      venue_product_symbol: order.venue_id |> venue_product_symbol,
       credential_id: :main,
       product_symbol: order.venue_id |> product_symbol,
       side: order.side,
@@ -203,22 +206,37 @@ defmodule Tai.Venues.Adapters.AmendOrderTest do
       qty: order.venue_id |> qty(order.side),
       cumulative_qty: Decimal.new(0),
       time_in_force: :gtc,
-      post_only: true
+      post_only: true,
+      product_type: order.venue_id |> product_type()
     })
   end
 
+  defp venue_product_symbol(:bitmex), do: "XBTH19"
+  defp venue_product_symbol(:okex_spot), do: "BTC-USDT"
+
+  defp product_type(:bitmex), do: :future
+  defp product_type(:okex_spot), do: :spot
+
   defp product_symbol(:bitmex), do: :xbth19
-  defp product_symbol(_), do: :btc_usd
+  defp product_symbol(_), do: :btc_usdt
 
   defp price(:bitmex, :buy), do: Decimal.new("2001.5")
+  defp price(:okex_spot, :buy), do: Decimal.new("62400.0")
 
   defp amend_price(:bitmex, :buy), do: Decimal.new("2300.5")
+  defp amend_price(:okex_spot, :buy), do: Decimal.new("62500.0")
 
   defp qty(:bitmex, _), do: Decimal.new(2)
+  defp qty(:okex_spot, _), do: Decimal.new("0.0001")
 
   defp amend_qty(:bitmex, :buy), do: Decimal.new(10)
+  defp amend_qty(:okex_spot, :buy), do: Decimal.new("0.0002")
 
   defp amend_attrs(:bitmex, price: price, qty: qty), do: %{price: price, qty: qty}
   defp amend_attrs(:bitmex, price: price), do: %{price: price}
   defp amend_attrs(:bitmex, qty: qty), do: %{qty: qty}
+
+  defp amend_attrs(:okex_spot, price: price, qty: qty), do: %{price: price, qty: qty}
+  defp amend_attrs(:okex_spot, price: price), do: %{price: price}
+  defp amend_attrs(:okex_spot, qty: qty), do: %{qty: qty}
 end

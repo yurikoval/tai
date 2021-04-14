@@ -6,7 +6,8 @@ defmodule Tai.VenueAdapters.OkEx do
     Positions,
     MakerTakerFees,
     CreateOrder,
-    CancelOrder
+    CancelOrder,
+    AmendOrder
   }
 
   @behaviour Tai.Venues.Adapter
@@ -18,7 +19,7 @@ defmodule Tai.VenueAdapters.OkEx do
   defdelegate maker_taker_fees(venue_id, credential_id, credentials), to: MakerTakerFees
   defdelegate positions(venue_id, credential_id, credentials), to: Positions
   defdelegate create_order(order, credentials), to: CreateOrder
-  def amend_order(_order, _attrs, _credentials), do: {:error, :not_supported}
+  defdelegate amend_order(order, attrs, credentials), to: AmendOrder
   def amend_bulk_orders(_orders_with_attrs, _credentials), do: {:error, :not_supported}
   defdelegate cancel_order(order, credentials), to: CancelOrder
 end
