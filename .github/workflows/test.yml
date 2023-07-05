@@ -8,6 +8,10 @@ on:
     branches:
       - '*'
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   test-elixir:
     runs-on: ubuntu-22.04
@@ -74,3 +78,19 @@ jobs:
 
       - name: Dialyzer
         run: mix dialyzer
+  dependabot:
+    needs: test-elixir
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v1
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Auto-merge for Dependabot PRs
+        if: ${{(steps.metadata.outputs.update-type == 'version-update:semver-minor') || (steps.metadata.outputs.update-type == 'version-update:semver-patch')}}
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
