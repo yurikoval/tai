@@ -18,7 +18,6 @@ jobs:
     name: Test OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
 
     strategy:
-      fail-fast: false
       matrix:
         otp: [24.x, 25.x]
         elixir: [1.13.x, 1.14.x, 1.15.x]
