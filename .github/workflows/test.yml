@@ -72,8 +72,8 @@ jobs:
         with:
           name: log artifacts
           path: |
-            apps/tai/log
-            apps/examples/log
+            apps/tai/log-${{ matrix.otp }}-${{ matrix.elixir }}
+            apps/examples/log-${{ matrix.otp }}-${{ matrix.elixir }}
 
       - name: Dialyzer
         run: mix dialyzer
