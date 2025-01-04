@@ -68,12 +68,12 @@ jobs:
           mix tai.gen.migration
           mix test
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: log artifacts
           path: |
-            apps/tai/log
-            apps/examples/log
+            apps/tai/log-${{ matrix.otp }}-${{ matrix.elixir }}
+            apps/examples/log-${{ matrix.otp }}-${{ matrix.elixir }}
 
       - name: Dialyzer
         run: mix dialyzer
