@@ -68,7 +68,7 @@ jobs:
           mix tai.gen.migration
           mix test
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: log artifacts
           path: |
