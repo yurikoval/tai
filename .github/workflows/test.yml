@@ -72,9 +72,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: log artifacts
+          overwrite: true
           path: |
-            apps/tai/log-${{ matrix.otp }}-${{ matrix.elixir }}
-            apps/examples/log-${{ matrix.otp }}-${{ matrix.elixir }}
+            apps/tai/log
+            apps/examples/log
 
       - name: Dialyzer
         run: mix dialyzer
