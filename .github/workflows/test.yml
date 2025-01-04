@@ -14,12 +14,12 @@ permissions:
 
 jobs:
   test-elixir:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     name: Test OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
 
     strategy:
       matrix:
-        otp: [24.x, 25.x]
+        otp: [24.x, 25.x, 26.x, 27.x]
         elixir: [1.15.x]
 
     steps:
