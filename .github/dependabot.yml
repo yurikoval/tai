@@ -3,6 +3,8 @@ updates:
 - package-ecosystem: mix
   directory: "/"
   open-pull-requests-limit: 20
+  schedule:
+    interval: daily
 - package-ecosystem: github-actions
   directory: "/"
   schedule:
