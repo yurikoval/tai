@@ -64,7 +64,7 @@ defmodule Tai.Mixfile do
       {:httpoison, "~> 1.0"},
       {:jason, "~> 1.1"},
       {:juice, "~> 0.0.3"},
-      {:murmur, "~> 1.0"},
+      {:murmur, "~> 2.0"},
       {:paged_query, "~> 0.0.2"},
       {:phoenix_pubsub, "~> 2.0"},
       {:polymorphic_embed, "~> 3.0"},
