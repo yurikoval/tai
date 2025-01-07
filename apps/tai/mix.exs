@@ -67,7 +67,7 @@ defmodule Tai.Mixfile do
       {:murmur, "~> 2.0"},
       {:paged_query, "~> 0.0.2"},
       {:phoenix_pubsub, "~> 2.0"},
-      {:polymorphic_embed, "~> 3.0"},
+      {:polymorphic_embed, "~> 4.1"},
       {:poolboy, "~> 1.5.1"},
       {:postgrex, "~> 0.15", optional: true},
       {:table_rex, "~> 3.0"},
