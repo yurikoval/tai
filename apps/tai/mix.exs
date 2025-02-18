@@ -70,7 +70,7 @@ defmodule Tai.Mixfile do
       {:polymorphic_embed, "~> 4.1"},
       {:poolboy, "~> 1.5.1"},
       {:postgrex, "~> 0.15", optional: true},
-      {:table_rex, "~> 3.0"},
+      {:table_rex, "~> 4.1"},
       # {:tai_events, path: "../../packages/tai_events"},
       {:tai_events, "~> 0.0.2"},
       {:telemetry, "~> 0.4 or ~> 1.0"},
