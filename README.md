@@ -20,7 +20,6 @@ Here's an example of an advisor that logs the spread between multiple products o
 
 | Venues | Live Order Book | Accounts | Orders | Products | Fees |
 | ------ | :-------------: | :------: | :----: | :------: | :--: |
-| FTX                    |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
 | OkEx                   |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
 | BitMEX                 |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
 | Binance Spot           |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |

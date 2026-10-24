@@ -61,14 +61,12 @@ defmodule Tai.Venues.Adapters.CreateOrderGtcTest do
   defp venue_product_symbol("okex_futures"), do: "ETH-USD-190628"
   defp venue_product_symbol("okex_swap"), do: "ETH-USD-SWAP"
   defp venue_product_symbol("okex_spot"), do: "ETH-USDT"
-  defp venue_product_symbol("ftx"), do: "BTC/USD"
   defp venue_product_symbol(_), do: "LTC-BTC"
 
   defp product_symbol("bitmex"), do: "xbth19"
   defp product_symbol("okex_futures"), do: "eth_usd_190628"
   defp product_symbol("okex_swap"), do: "eth_usd_swap"
   defp product_symbol("okex_spot"), do: "eth_usdt"
-  defp product_symbol("ftx"), do: :"btc/usd"
   defp product_symbol(_), do: "ltc_btc"
 
   defp product_type("okex_swap"), do: :swap
@@ -83,8 +81,6 @@ defmodule Tai.Venues.Adapters.CreateOrderGtcTest do
   defp price("okex_swap", :sell, :gtc), do: Decimal.new("290.5")
   defp price("okex_spot", :buy, :gtc), do: Decimal.new("70.5")
   defp price("okex_spot", :sell, :gtc), do: Decimal.new("290.5")
-  defp price("ftx", :buy, :gtc), do: Decimal.new("25000.5")
-  defp price("ftx", :sell, :gtc), do: Decimal.new("75000.5")
   defp price(_, :buy, _), do: Decimal.new("0.007")
   defp price(_, :sell, _), do: Decimal.new("0.1")
 
@@ -96,8 +92,6 @@ defmodule Tai.Venues.Adapters.CreateOrderGtcTest do
   defp qty("okex_swap", :sell, _), do: Decimal.new(1)
   defp qty("okex_spot", :buy, _), do: Decimal.new(1)
   defp qty("okex_spot", :sell, _), do: Decimal.new(1)
-  defp qty("ftx", :buy, :gtc), do: Decimal.new("0.0001")
-  defp qty("ftx", :sell, :gtc), do: Decimal.new("0.0001")
   defp qty(_, _, :gtc), do: Decimal.new(1_000)
   defp qty(_, :buy, _), do: Decimal.new("0.2")
   defp qty(_, :sell, _), do: Decimal.new("0.1")

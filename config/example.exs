@@ -54,11 +54,6 @@ config :tai,
         }
       }
     ],
-    ftx: [
-      start_on_boot: true,
-      adapter: Tai.VenueAdapters.Ftx,
-      products: "btc/usd btc-perp"
-    ],
     huobi: [
       start_on_boot: true,
       adapter: Tai.VenueAdapters.Huobi,
