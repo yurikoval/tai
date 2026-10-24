@@ -11,8 +11,6 @@ defmodule TaiEventsTest do
 
   describe ".firehose_subscribe/0" do
     test "creates a registry entry for the :firehose topic" do
-      start_supervised!({TaiEvents, 1})
-
       TaiEvents.firehose_subscribe()
 
       Registry.dispatch(TaiEvents, :firehose, fn entries ->
@@ -27,7 +25,6 @@ defmodule TaiEventsTest do
     test "creates a registry entry for all events of the given type" do
       event = %MyEvent{}
       other_event = %MyOtherEvent{}
-      start_supervised!({TaiEvents, 1})
 
       TaiEvents.subscribe(MyEvent)
 
@@ -53,7 +50,6 @@ defmodule TaiEventsTest do
         level = @level
         event = %MyEvent{}
         other_event = %MyOtherEvent{}
-        start_supervised!({TaiEvents, 1})
 
         Registry.register(TaiEvents, MyEvent, [])
 
@@ -68,7 +64,6 @@ defmodule TaiEventsTest do
         level = @level
         event = %MyEvent{}
         other_event = %MyOtherEvent{}
-        start_supervised!({TaiEvents, 1})
 
         Registry.register(TaiEvents, :firehose, [])
 

@@ -46,6 +46,9 @@ jobs:
       - name: Install Dependencies
         run: mix deps.get
 
+      - name: Check formatting
+        run: mix format --check-formatted
+
       - name: Test
         env:
           CI: true
@@ -79,8 +82,35 @@ jobs:
 
       - name: Dialyzer
         run: mix dialyzer
+
+  tai-events:
+    runs-on: ubuntu-latest
+    name: Test tai_events OTP 27.x / Elixir 1.20.x
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: 27.x
+          elixir-version: 1.20.x
+
+      - name: Install dependencies
+        working-directory: packages/tai_events
+        run: MIX_ENV=test mix deps.get
+
+      - name: Check formatting
+        working-directory: packages/tai_events
+        run: mix format --check-formatted
+
+      - name: Test
+        working-directory: packages/tai_events
+        env:
+          CI: true
+        run: mix test
+
   dependabot:
-    needs: test-elixir
+    needs: [test-elixir, tai-events]
     runs-on: ubuntu-latest
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
