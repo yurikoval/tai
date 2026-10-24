@@ -1,7 +1,7 @@
 defmodule Tai.Orders.OrderTransition do
   use Ecto.Schema
   import Ecto.Changeset
-  import PolymorphicEmbed, only: [cast_polymorphic_embed: 3]
+  import PolymorphicEmbed, only: [cast_polymorphic_embed: 3, polymorphic_embeds_one: 2]
   alias Tai.Orders.Transitions
 
   @type t :: %__MODULE__{}
@@ -17,7 +17,7 @@ defmodule Tai.Orders.OrderTransition do
       type: Ecto.UUID
     )
 
-    field(:transition, PolymorphicEmbed,
+    polymorphic_embeds_one(:transition,
       types: [
         accept_create: Transitions.AcceptCreate,
         venue_create_error: Transitions.VenueCreateError,
