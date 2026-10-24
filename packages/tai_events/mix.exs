@@ -40,7 +40,9 @@ defmodule TaiEvents.MixProject do
     %{
       licenses: ["MIT"],
       maintainers: ["Alex Kwiatkowski"],
-      links: %{"GitHub" => "https://github.com/fremantle-capital/tai/tree/master/apps/tai_events"}
+      links: %{
+        "GitHub" => "https://github.com/fremantle-industries/tai/tree/main/packages/tai_events"
+      }
     }
   end
 
