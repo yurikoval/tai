@@ -67,10 +67,16 @@ defmodule Tai.VenueAdapters.Binance.Products do
   end
 
   defp type(_venue_product, :spot), do: :spot
-  defp type(%{"contractType" => "PERPETUAL"}, _market), do: :swap
+
+  defp type(%{"contractType" => contract_type}, _market)
+       when contract_type in ["PERPETUAL", "PERPETUAL_DELIVERING"],
+       do: :swap
+
   defp type(_venue_product, _market), do: :future
 
-  defp expiry(%{"contractType" => "PERPETUAL"}, _market), do: nil
+  defp expiry(%{"contractType" => contract_type}, _market)
+       when contract_type in ["PERPETUAL", "PERPETUAL_DELIVERING"],
+       do: nil
   defp expiry(%{"deliveryDate" => value}, market), do: timestamp(value, market)
   defp expiry(_, _market), do: nil
 

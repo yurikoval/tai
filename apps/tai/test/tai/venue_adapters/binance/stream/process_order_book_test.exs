@@ -7,7 +7,8 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBookTest do
   @product struct(Tai.Venues.Product,
              venue_id: :venue_a,
              symbol: :xbtusd,
-             venue_symbol: "XBTUSD"
+             venue_symbol: "XBTUSD",
+             type: :spot
            )
   @order_book_name OrderBook.to_name(@product.venue_id, @product.venue_symbol)
   @quote_depth 1
@@ -15,10 +16,19 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBookTest do
   setup do
     Process.register(self(), @order_book_name)
     start_supervised!(OrderBook.child_spec(@product, @quote_depth, false))
-    {:ok, pid} = start_supervised({ProcessOrderBook, @product})
+    {:ok, pid} =
+      start_supervised({ProcessOrderBook, [product: @product, snapshot_depth: 5]})
+
+    :sys.replace_state(pid, &%{&1 | last_update_id: 0, bridged: true})
     Tai.Markets.subscribe_quote(@product.venue_id)
 
     {:ok, %{pid: pid}}
+  end
+
+  test "requires a positive snapshot depth" do
+    assert_raise ArgumentError, "snapshot_depth must be a positive integer", fn ->
+      ProcessOrderBook.start_link(product: @product, snapshot_depth: nil)
+    end
   end
 
   test "can insert new price points into the order book", %{pid: pid} do
@@ -139,7 +149,12 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBookTest do
   end
 
   test "accepts the first futures event that bridges the snapshot", %{pid: pid} do
-    :sys.replace_state(pid, &%{&1 | last_update_id: 100, bridged: false})
+    futures_product = %{@product | type: :swap}
+
+    :sys.replace_state(
+      pid,
+      &%{&1 | product: futures_product, last_update_id: 100, bridged: false}
+    )
 
     data = %{
       "E" => 1_569_054_255_636,
@@ -157,7 +172,7 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBookTest do
     assert Enum.at(market_quote.bids, 0) == %PricePoint{price: 100.0, size: 15.0}
   end
 
-  test "rejects depth updates with a sequence gap", %{pid: pid} do
+  test "resyncs depth updates with a sequence gap", %{pid: pid} do
     first = %{
       "E" => 1_569_054_255_636,
       "s" => @product.venue_symbol,
@@ -179,8 +194,23 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBookTest do
       "a" => []
     }
 
-    GenServer.cast(pid, {:update, gap, Timex.now()})
-    refute_receive %Quote{}, 50
+    with_mock ExBinance.Rest.SpotClient,
+      get: fn "/api/v3/depth", %{symbol: "XBTUSD", limit: 5} ->
+        {:ok,
+         %{
+           "lastUpdateId" => 2,
+           "bids" => [["98", "10"]],
+           "asks" => [["102", "12"]]
+         }}
+      end do
+      GenServer.cast(pid, {:update, gap, Timex.now()})
+
+      assert_receive %Quote{} = snapshot_quote
+      assert Enum.at(snapshot_quote.bids, 0) == %PricePoint{price: 98.0, size: 10.0}
+
+      assert_receive %Quote{} = updated_quote
+      assert Enum.at(updated_quote.bids, 0) == %PricePoint{price: 99.0, size: 20.0}
+    end
   end
 
   test "can delete existing price points from the order book", %{pid: pid} do

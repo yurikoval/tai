@@ -57,7 +57,7 @@ defmodule Tai.VenueAdapters.Binance.ProductsTest do
     end
   end
 
-  test "discovers USD-M perpetual swaps" do
+  test "discovers USD-M perpetual swaps and delivering perpetuals" do
     response = %{
       "symbols" => [
         %{
@@ -70,13 +70,24 @@ defmodule Tai.VenueAdapters.Binance.ProductsTest do
           "baseAsset" => "BTC",
           "quoteAsset" => "USDT",
           "filters" => [%{"filterType" => "MIN_NOTIONAL", "notional" => "50"} | @filters]
+        },
+        %{
+          "symbol" => "ETHUSDT",
+          "pair" => "ETHUSDT",
+          "contractType" => "PERPETUAL_DELIVERING",
+          "deliveryDate" => 4_133_404_800_000,
+          "onboardDate" => 1_567_965_300_000,
+          "status" => "PRE_DELIVERING",
+          "baseAsset" => "ETH",
+          "quoteAsset" => "USDT",
+          "filters" => [%{"filterType" => "MIN_NOTIONAL", "notional" => "20"} | @filters]
         }
       ]
     }
 
     with_mock ExBinance.Rest.UsdMarginFuturesClient,
       get: fn "/fapi/v1/exchangeInfo", %{} -> {:ok, response} end do
-      assert {:ok, [product]} =
+      assert {:ok, [product, delivering]} =
                Products.products(:binance_usd_futures, :usd_margin_futures)
 
       assert product.symbol == :btcusdt
@@ -85,6 +96,11 @@ defmodule Tai.VenueAdapters.Binance.ProductsTest do
       assert product.value == Decimal.new(1)
       assert product.value_side == :base
       refute product.is_inverse
+
+      assert delivering.symbol == :ethusdt
+      assert delivering.type == :swap
+      assert delivering.expiry == nil
+      assert delivering.status == Tai.Venues.ProductStatus.post_trading()
     end
   end
 

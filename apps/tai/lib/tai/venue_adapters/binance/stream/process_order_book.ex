@@ -5,22 +5,31 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
   alias Tai.VenueAdapters.Binance.Stream.Snapshot
 
   defmodule State do
-    @enforce_keys ~w[product]a
+    @enforce_keys ~w[product snapshot_depth]a
     defstruct [:product, :snapshot_depth, :last_update_id, buffered_updates: [], bridged: false]
   end
 
   @type product :: Tai.Venues.Product.t()
 
+  @default_snapshot_depth 50
+
   @spec start_link(product | keyword) :: GenServer.on_start()
-  def start_link(%Tai.Venues.Product{} = product), do: start_link(product: product)
+  def start_link(%Tai.Venues.Product{} = product),
+    do: start_link(product: product, snapshot_depth: @default_snapshot_depth)
 
   def start_link(opts) when is_list(opts) do
     product = Keyword.fetch!(opts, :product)
+    snapshot_depth = Keyword.fetch!(opts, :snapshot_depth)
+
+    unless is_integer(snapshot_depth) and snapshot_depth > 0 do
+      raise ArgumentError, "snapshot_depth must be a positive integer"
+    end
+
     name = to_name(product.venue_id, product.venue_symbol)
 
     state = %State{
       product: product,
-      snapshot_depth: Keyword.get(opts, :snapshot_depth),
+      snapshot_depth: snapshot_depth,
       last_update_id: nil,
       buffered_updates: [],
       bridged: false
@@ -44,9 +53,6 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
     {:reply, :ok, state}
   end
 
-  def handle_call(:sync_snapshot, _from, %State{snapshot_depth: nil} = state),
-    do: {:reply, :ok, state}
-
   def handle_call(:sync_snapshot, _from, state) do
     case replace_from_snapshot(state) do
       {:ok, state} -> {:reply, :ok, replay_buffered_updates(state)}
@@ -57,9 +63,8 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
   @impl true
   def handle_cast(
         {:update, _msg, _received_at} = update,
-        %State{snapshot_depth: depth, last_update_id: nil} = state
-      )
-      when not is_nil(depth) do
+        %State{last_update_id: nil} = state
+      ) do
     {:noreply, %{state | buffered_updates: [update | state.buffered_updates]}}
   end
 
@@ -74,11 +79,6 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
   defp process_update(msg, received_at, state) do
     apply_changes(msg, received_at, state)
     state
-  end
-
-  defp process_sequenced(msg, received_at, _first, last, %{last_update_id: nil} = state, _) do
-    apply_changes(msg, received_at, state)
-    %{state | last_update_id: last, bridged: true}
   end
 
   defp process_sequenced(_msg, _received_at, _first, last, %{last_update_id: current} = state, _)
@@ -111,8 +111,6 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
   end
 
   defp resync(_msg, _received_at, _first, _last, state, false), do: state
-  defp resync(_msg, _received_at, _first, _last, %{snapshot_depth: nil} = state, true), do: state
-
   defp resync(msg, received_at, first, last, state, true) do
     case replace_from_snapshot(state) do
       {:ok, synced_state} ->
