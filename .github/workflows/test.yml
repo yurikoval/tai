@@ -54,8 +54,6 @@ jobs:
           CI: true
           BINANCE_API_KEY: ./secrets/ci/binance_api_key
           BINANCE_API_SECRET: ./secrets/ci/binance_api_secret
-          BITMEX_API_KEY: ./secrets/ci/bitmex_api_key
-          BITMEX_API_SECRET: ./secrets/ci/bitmex_api_secret
           GDAX_API_KEY: ./secrets/ci/gdax_api_key
           GDAX_API_PASSPHRASE: ./secrets/ci/gdax_api_passphrase
           GDAX_API_SECRET: ./secrets/ci/gdax_api_secret

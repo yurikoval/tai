@@ -80,20 +80,13 @@ defmodule Tai.Venues.Adapters.CreateOrderFokTest do
     })
   end
 
-  defp venue_product_symbol("bitmex"), do: "XBTH19"
   defp venue_product_symbol(_), do: "LTC-BTC"
 
-  defp product_symbol("bitmex"), do: "xbth19"
   defp product_symbol(_), do: "ltc_btc"
 
-  defp price("bitmex", :buy, :fok, :filled), do: Decimal.new("4455.5")
-  defp price("bitmex", :sell, :fok, :filled), do: Decimal.new("3788.5")
-  defp price("bitmex", :buy, :fok, :expired), do: Decimal.new("4450.5")
-  defp price("bitmex", :sell, :fok, :expired), do: Decimal.new("3790.5")
   defp price(_, :buy, _, _), do: Decimal.new("0.007")
   defp price(_, :sell, _, _), do: Decimal.new("0.1")
 
-  defp qty("bitmex", _, :fok, _), do: Decimal.new(10)
   defp qty(_, :buy, _, _), do: Decimal.new("0.2")
   defp qty(_, :sell, _, _), do: Decimal.new("0.1")
 end

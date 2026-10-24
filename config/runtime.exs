@@ -115,23 +115,6 @@ if config_env() == :test do
         credentials: %{main: %{}},
         opts: %{}
       ],
-      bitmex: [
-        enabled: true,
-        adapter: Tai.VenueAdapters.Bitmex,
-        credentials: %{
-          main: %{
-            api_key: test_credential,
-            api_secret: test_credential
-          },
-          error: %{
-            api_key: "invalid",
-            api_secret: "invalid"
-          }
-        },
-        opts: %{
-          autocancel: %{ping_interval_ms: 15_000, cancel_after_ms: 60_000}
-        }
-      ],
       bybit: [
         enabled: true,
         adapter: Tai.VenueAdapters.Bybit
@@ -240,7 +223,6 @@ if config_env() == :test do
 
   config :tai, :test_venue_adapters_products, [
     :binance,
-    :bitmex,
     :bybit,
     :deribit,
     :gdax,
@@ -252,45 +234,41 @@ if config_env() == :test do
 
   config :tai, :test_venue_adapters_accounts, [
     :binance,
-    :bitmex,
     :deribit,
     :gdax,
     :mock,
     :okex
   ]
 
-  config :tai, :test_venue_adapters_accounts_error, [:bitmex]
+  config :tai, :test_venue_adapters_accounts_error, []
   config :tai, :test_venue_adapters_maker_taker_fees, [:mock, :binance, :gdax, :okex]
 
   config :tai, :test_venue_adapters_create_order_gtc_accepted, [
     :binance,
-    :bitmex,
     :okex_futures,
     :okex_spot,
     :okex_swap
   ]
 
-  config :tai, :test_venue_adapters_create_order_fok, [:bitmex, :binance]
+  config :tai, :test_venue_adapters_create_order_fok, [:binance]
   config :tai, :test_venue_adapters_create_order_ioc, []
-  config :tai, :test_venue_adapters_create_order_ioc_accepted, [:binance, :bitmex]
+  config :tai, :test_venue_adapters_create_order_ioc_accepted, [:binance]
   config :tai, :test_venue_adapters_create_order_close, [:okex_futures, :okex_swap]
 
-  config :tai, :test_venue_adapters_create_order_error, [:bitmex]
+  config :tai, :test_venue_adapters_create_order_error, []
   config :tai, :test_venue_adapters_create_order_error_size_too_small, []
 
   config :tai, :test_venue_adapters_create_order_error_insufficient_balance, [
-    :bitmex,
     :okex_futures,
     :okex_swap,
     :binance
   ]
 
-  config :tai, :test_venue_adapters_amend_order_accepted, [:bitmex]
-  config :tai, :test_venue_adapters_amend_bulk_order_accepted, [:bitmex]
+  config :tai, :test_venue_adapters_amend_order_accepted, []
+  config :tai, :test_venue_adapters_amend_bulk_order_accepted, []
 
   config :tai, :test_venue_adapters_cancel_order_accepted, [
     :binance,
-    :bitmex,
     :okex_futures,
     :okex_swap,
     :okex_spot
@@ -303,16 +281,15 @@ if config_env() == :test do
   ]
 
   config :tai, :test_venue_adapters_cancel_order_error_timeout, [
-    :bitmex,
     :okex_futures,
     :okex_swap
   ]
 
-  config :tai, :test_venue_adapters_cancel_order_error_overloaded, [:bitmex]
-  config :tai, :test_venue_adapters_cancel_order_error_nonce_not_increasing, [:bitmex]
-  config :tai, :test_venue_adapters_cancel_order_error_rate_limited, [:bitmex]
-  config :tai, :test_venue_adapters_cancel_order_error_unhandled, [:bitmex, :binance]
-  config :tai, :test_venue_adapters_with_positions, [:bitmex, :deribit, :okex]
+  config :tai, :test_venue_adapters_cancel_order_error_overloaded, []
+  config :tai, :test_venue_adapters_cancel_order_error_nonce_not_increasing, []
+  config :tai, :test_venue_adapters_cancel_order_error_rate_limited, []
+  config :tai, :test_venue_adapters_cancel_order_error_unhandled, [:binance]
+  config :tai, :test_venue_adapters_with_positions, [:deribit, :okex]
 
   config :exvcr,
     filter_request_headers: [
@@ -323,10 +300,6 @@ if config_env() == :test do
       "CB-ACCESS-PASSPHRASE",
       # Binance
       "X-MBX-APIKEY",
-      # Bitmex
-      "api-key",
-      "api-nonce",
-      "api-signature",
       # OkEx
       "OK-ACCESS-KEY",
       "OK-ACCESS-SIGN",
@@ -356,6 +329,5 @@ if config_env() == :test do
 
   config :echo_boy, port: 4100
 
-  config :ex_bitmex, domain: "testnet.bitmex.com"
   config :ex_deribit, domain: "test.deribit.com"
 end
