@@ -122,7 +122,7 @@ defmodule Tai.BootTest do
 
       :ok = Tai.SystemBus.broadcast(@venue_start_error_topic, {@venue_start_error_topic, @venue_b.id, [products: :maintenance]})
       assert_event(%Tai.Events.BootAdvisorsError{} = event, :error, 1000)
-      assert event.reason == [
+      assert Enum.sort(event.reason) == [
                venue_a: [products: :maintenance],
                venue_b: [products: :maintenance]
              ]

@@ -18,7 +18,8 @@ defmodule Tai.Advisors.Factories.OnePerVenueTest do
     advisor_configs = OnePerVenue.advisor_configs(@fleet_config)
 
     assert length(advisor_configs) == 2
-    assert %Tai.Fleets.AdvisorConfig{} = advisor_config = advisor_configs |> List.first()
+    advisor_config = Enum.find(advisor_configs, &(&1.advisor_id == :venue_a))
+    assert %Tai.Fleets.AdvisorConfig{} = advisor_config
     assert advisor_config.mod == MyAdvisor
     assert advisor_config.fleet_id == :fleet_a
     assert advisor_config.advisor_id == :venue_a

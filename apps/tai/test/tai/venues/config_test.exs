@@ -14,7 +14,7 @@ defmodule Tai.Venues.ConfigTest do
           adapter_timeout: 100
         )
 
-      venues = Tai.Venues.Config.parse(config)
+      venues = config |> Tai.Venues.Config.parse() |> Enum.sort_by(& &1.id)
       assert Enum.count(venues) == 3
 
       assert Enum.at(venues, 0).id == :venue_a
