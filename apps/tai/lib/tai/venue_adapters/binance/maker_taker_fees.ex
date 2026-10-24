@@ -1,4 +1,6 @@
 defmodule Tai.VenueAdapters.Binance.MakerTakerFees do
+  alias Tai.VenueAdapters.Binance.Error
+
   def maker_taker_fees(_venue_id, _credential_id, credentials) do
     venue_credentials = struct!(ExBinance.Credentials, credentials)
 
@@ -8,14 +10,7 @@ defmodule Tai.VenueAdapters.Binance.MakerTakerFees do
       taker = account.taker_commission |> Decimal.new() |> Decimal.div(percent_factor)
       {:ok, {maker, taker}}
     else
-      {:error, :receive_window} = error ->
-        error
-
-      {:error, {:binance_error, %{"code" => -2014, "msg" => "API-key format invalid." = reason}}} ->
-        {:error, {:credentials, reason}}
-
-      {:error, {:http_error, %HTTPoison.Error{reason: "timeout"}}} ->
-        {:error, :timeout}
+      {:error, _} = error -> Error.normalize(error)
     end
   end
 end

@@ -1,35 +1,29 @@
 defmodule Tai.VenueAdapters.Binance.CancelOrder do
   alias Tai.Orders.Responses
-  alias ExBinance.Spot.Private
+  alias Tai.VenueAdapters.Binance.{Error, Market}
 
-  def cancel_order(order, credentials) do
+  def cancel_order(order, credentials, market \\ :spot) do
     venue_credentials = struct!(ExBinance.Credentials, credentials)
+    client = Market.rest_client(market)
 
-    order.venue_product_symbol
-    |> send_to_venue(order.venue_order_id, venue_credentials)
-    |> parse_response()
-  end
-
-  defdelegate send_to_venue(venue_symbol, order_id, credentials),
-    to: ExBinance.Spot.Private,
-    as: :cancel_order_by_order_id
-
-  defp parse_response({:ok, %Private.Responses.CancelOrderResponse{} = venue_response}) do
-    received_at = Tai.Time.monotonic_time()
-
-    response = %Responses.CancelAccepted{
-      id: venue_response.order_id,
-      received_at: received_at
+    params = %{
+      symbol: order.venue_product_symbol,
+      orderId: order.venue_order_id
     }
 
-    {:ok, response}
-  end
+    case client.delete(Market.order_path(market), params, venue_credentials) do
+      {:ok, %{"orderId" => venue_order_id}} ->
+        {:ok,
+         %Responses.CancelAccepted{
+           id: to_string(venue_order_id),
+           received_at: Tai.Time.monotonic_time()
+         }}
 
-  defp parse_response({:error, {:not_found, _}}) do
-    {:error, :not_found}
-  end
+      {:error, :receive_window} ->
+        {:error, {:unhandled, :receive_window}}
 
-  defp parse_response({:error, reason}) do
-    {:error, {:unhandled, reason}}
+      {:error, _} = error ->
+        Error.normalize(error)
+    end
   end
 end

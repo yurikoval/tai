@@ -78,9 +78,10 @@ defmodule Tai.VenueAdapters.Huobi.Stream.Connection do
 
   @impl true
   def on_msg(%{"id" => id}, _received_at, state) do
-    requests = Map.delete(state.requests, id)
-    state = %{state | requests: requests}
-    {:ok, state}
+    request_id = if is_binary(id), do: String.to_integer(id), else: id
+    pending_requests = Map.delete(state.requests.pending_requests, request_id)
+    requests = %{state.requests | pending_requests: pending_requests}
+    {:ok, %{state | requests: requests}}
   end
 
   @impl true

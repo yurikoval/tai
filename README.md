@@ -20,15 +20,17 @@ Here's an example of an advisor that logs the spread between multiple products o
 
 | Venues | Live Order Book | Accounts | Orders | Products | Fees |
 | ------ | :-------------: | :------: | :----: | :------: | :--: |
-| FTX    |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
-| OkEx   |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
-| BitMEX |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
+| FTX                    |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
+| OkEx                   |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
+| BitMEX                 |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
+| Binance Spot           |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
+| Binance USD-M Futures  |       [x]       |   [x]    |  [x]   |   [x]    | [ ]  |
+| Binance COIN-M Futures |       [x]       |   [x]    |  [x]   |   [x]    | [ ]  |
 
 ## Venues In Progress
 
 | Venue             | Live Order Book | Accounts | Orders | Products | Fees |
 | ----------------- | :-------------: | :------: | :----: | :------: | :--: |
-| Binance           |       [x]       |   [x]    |   [ ]  |   [x]    | [x]  |
 | Deribit           |       [x]       |   [x]    |   [ ]  |   [x]    | [x]  |
 | GDAX              |       [x]       |   [x]    |   [ ]  |   [x]    | [x]  |
 | Huobi             |       [x]       |   [ ]    |   [ ]  |   [x]    | [ ]  |

@@ -17,7 +17,7 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
     @type t :: %Requests{
             next_request_id: next_request_id,
             pending_requests: %{
-              optional(next_request_id) => pos_integer
+              optional(next_request_id) => pos_integer | atom
             }
           }
 
@@ -226,7 +226,11 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
 
       defp add_request(state) do
         pending_requests =
-          Map.put(state.requests, state.requests.next_request_id, System.monotonic_time())
+          Map.put(
+            state.requests.pending_requests,
+            state.requests.next_request_id,
+            System.monotonic_time()
+          )
 
         requests = %{
           state.requests

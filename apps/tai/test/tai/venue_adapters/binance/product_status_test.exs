@@ -23,6 +23,27 @@ defmodule Tai.VenueAdapters.Binance.ProductStatusTest do
 
       assert Tai.VenueAdapters.Binance.ProductStatus.normalize("BREAK") ==
                {:ok, Tai.Venues.ProductStatus.break()}
+
+      assert Tai.VenueAdapters.Binance.ProductStatus.normalize("PENDING_TRADING") ==
+               {:ok, Tai.Venues.ProductStatus.pre_trading()}
+
+      assert Tai.VenueAdapters.Binance.ProductStatus.normalize("PRE_SETTLE") ==
+               {:ok, Tai.Venues.ProductStatus.post_trading()}
+
+      assert Tai.VenueAdapters.Binance.ProductStatus.normalize("PRE_DELIVERING") ==
+               {:ok, Tai.Venues.ProductStatus.post_trading()}
+
+      assert Tai.VenueAdapters.Binance.ProductStatus.normalize("SETTLING") ==
+               {:ok, Tai.Venues.ProductStatus.end_of_day()}
+
+      assert Tai.VenueAdapters.Binance.ProductStatus.normalize("DELIVERING") ==
+               {:ok, Tai.Venues.ProductStatus.end_of_day()}
+
+      assert Tai.VenueAdapters.Binance.ProductStatus.normalize("CLOSE") ==
+               {:ok, Tai.Venues.ProductStatus.settled()}
+
+      assert Tai.VenueAdapters.Binance.ProductStatus.normalize("DELIVERED") ==
+               {:ok, Tai.Venues.ProductStatus.settled()}
     end
 
     test "returns an error tuple for an unsupported status" do

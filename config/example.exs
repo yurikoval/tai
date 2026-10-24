@@ -75,6 +75,28 @@ config :tai,
         }
       }
     ],
+    binance_usd_futures: [
+      start_on_boot: false,
+      adapter: Tai.VenueAdapters.Binance.UsdMarginFutures,
+      products: "btcusdt",
+      credentials: %{
+        main: %{
+          api_key: {:system_file, "BINANCE_API_KEY"},
+          secret_key: {:system_file, "BINANCE_API_SECRET"}
+        }
+      }
+    ],
+    binance_coin_futures: [
+      start_on_boot: false,
+      adapter: Tai.VenueAdapters.Binance.CoinMarginFutures,
+      products: "btcusd_perp",
+      credentials: %{
+        main: %{
+          api_key: {:system_file, "BINANCE_API_KEY"},
+          secret_key: {:system_file, "BINANCE_API_SECRET"}
+        }
+      }
+    ],
     deribit: [
       start_on_boot: true,
       adapter: Tai.VenueAdapters.Deribit,
