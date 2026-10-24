@@ -121,7 +121,11 @@ config :tai,
   }
 ```
 
-Perpetual contracts are normalized as `:swap`; dated contracts are normalized as `:future`. Spot symbols use `base_quote` (for example `btc_usdt`), while derivative symbols use Binance's lowercased venue symbol (for example `btcusdt` or `btcusd_250627`). Derivative trading currently supports Binance one-way position mode; hedge-mode positions are rejected because Tai stores one position per product. REST domains can be overridden through the `:ex_binance` `:spot_domain`, `:usd_margin_futures_domain`, and `:coin_margin_futures_domain` settings.
+Perpetual contracts are normalized as `:swap`; dated contracts are normalized as `:future`. Spot symbols use `base_quote` (for example `btc_usdt`), while derivative symbols use Binance's lowercased venue symbol (for example `btcusdt` or `btcusd_250627`).
+
+Derivative trading supports limit order creation and cancellation in Binance one-way position mode. Hedge-mode positions are rejected because Tai stores one position per product. Derivative maker/taker fee lookup and order amendment are not supported.
+
+Order book startup and sequence-gap recovery bridge buffered WebSocket depth updates from a REST snapshot. Set `opts: %{snapshot_depth: depth}` to change the snapshot depth from its default of `50`; `depth` must be a positive integer accepted by the configured Binance market. REST domains can be overridden through the `:ex_binance` `:spot_domain`, `:usd_margin_futures_domain`, and `:coin_margin_futures_domain` settings.
 
 ## Logging
 

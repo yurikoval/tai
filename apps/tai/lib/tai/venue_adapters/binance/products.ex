@@ -77,6 +77,7 @@ defmodule Tai.VenueAdapters.Binance.Products do
   defp expiry(%{"contractType" => contract_type}, _market)
        when contract_type in ["PERPETUAL", "PERPETUAL_DELIVERING"],
        do: nil
+
   defp expiry(%{"deliveryDate" => value}, market), do: timestamp(value, market)
   defp expiry(_, _market), do: nil
 

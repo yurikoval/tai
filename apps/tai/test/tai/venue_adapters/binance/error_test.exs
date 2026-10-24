@@ -15,8 +15,7 @@ defmodule Tai.VenueAdapters.Binance.ErrorTest do
 
   test "preserves ambiguous Binance order errors as unhandled" do
     crossing_order =
-      {:binance_error,
-       %{"code" => -2010, "msg" => "Order would immediately match and take."}}
+      {:binance_error, %{"code" => -2010, "msg" => "Order would immediately match and take."}}
 
     conflicting_reduce_only =
       {:binance_error,

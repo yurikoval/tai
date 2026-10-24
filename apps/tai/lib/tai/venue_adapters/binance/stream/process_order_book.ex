@@ -111,6 +111,7 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
   end
 
   defp resync(_msg, _received_at, _first, _last, state, false), do: state
+
   defp resync(msg, received_at, first, last, state, true) do
     case replace_from_snapshot(state) do
       {:ok, synced_state} ->

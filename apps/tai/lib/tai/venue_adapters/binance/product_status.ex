@@ -18,7 +18,9 @@ defmodule Tai.VenueAdapters.Binance.ProductStatus do
   def normalize("HALT"), do: {:ok, Tai.Venues.ProductStatus.halt()}
   def normalize("AUCTION_MATCH"), do: {:ok, Tai.Venues.ProductStatus.auction_match()}
   def normalize("BREAK"), do: {:ok, Tai.Venues.ProductStatus.break()}
+
   def normalize(status) when status in ["CLOSE", "DELIVERED"],
     do: {:ok, Tai.Venues.ProductStatus.settled()}
+
   def normalize(_), do: {:error, :unknown_status}
 end

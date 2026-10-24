@@ -2,6 +2,7 @@ defmodule Tai.VenueAdapters.Binance.StreamSupervisor do
   use Supervisor
 
   alias Tai.VenueAdapters.Binance.Market
+
   alias Tai.VenueAdapters.Binance.Stream.{
     Connection,
     ProcessOptionalChannels,
@@ -34,7 +35,10 @@ defmodule Tai.VenueAdapters.Binance.StreamSupervisor do
       )
 
     snapshot_depth = Map.get(stream.venue.opts, :snapshot_depth, 50)
-    process_order_book_children = build_process_order_book_children(stream.markets, snapshot_depth)
+
+    process_order_book_children =
+      build_process_order_book_children(stream.markets, snapshot_depth)
+
     market = stream.markets |> List.first() |> market()
     endpoint = Market.websocket_endpoint(market)
 
@@ -61,8 +65,7 @@ defmodule Tai.VenueAdapters.Binance.StreamSupervisor do
       %{
         id: ProcessOrderBook.to_name(product.venue_id, product.venue_symbol),
         start:
-          {ProcessOrderBook, :start_link,
-           [[product: product, snapshot_depth: snapshot_depth]]}
+          {ProcessOrderBook, :start_link, [[product: product, snapshot_depth: snapshot_depth]]}
       }
     end)
   end
