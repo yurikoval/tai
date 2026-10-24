@@ -16,11 +16,12 @@ config :tai, broadcast_change_set: true
 config :tai, venues: %{}
 
 # Logger
-config :logger,
-  backends: [{LoggerFileBackendWithFormatters, :file_log}],
-  utc_log: true
+config :logger, utc_log: true
 
-config :logger, :file_log, path: "./log/#{Mix.env()}.log"
+if config_env() != :test do
+  config :logger, backends: [{LoggerFileBackendWithFormatters, :file_log}]
+  config :logger, :file_log, path: "./log/#{Mix.env()}.log"
+end
 
 # Conditional configuration
 if config_env() == :dev do
@@ -97,6 +98,8 @@ if config_env() == :dev do
 end
 
 if config_env() == :test do
+  test_credential = Base.encode64("test")
+
   config :examples, :e2e_mappings, %{
     log_spread: ExamplesSupport.E2E.LogSpread,
     log_trade: ExamplesSupport.E2E.LogTrade,
@@ -123,8 +126,8 @@ if config_env() == :test do
         adapter: Tai.VenueAdapters.Bitmex,
         credentials: %{
           main: %{
-            api_key: {:system_file, "BITMEX_API_KEY"},
-            api_secret: {:system_file, "BITMEX_API_SECRET"}
+            api_key: test_credential,
+            api_secret: test_credential
           },
           error: %{
             api_key: "invalid",
@@ -144,9 +147,9 @@ if config_env() == :test do
         adapter: Tai.VenueAdapters.OkEx,
         credentials: %{
           main: %{
-            api_key: {:system_file, "OKEX_API_KEY"},
-            api_secret: {:system_file, "OKEX_API_SECRET"},
-            api_passphrase: {:system_file, "OKEX_API_PASSPHRASE"}
+            api_key: test_credential,
+            api_secret: test_credential,
+            api_passphrase: test_credential
           }
         },
         opts: %{}
@@ -156,9 +159,9 @@ if config_env() == :test do
         adapter: Tai.VenueAdapters.OkEx,
         credentials: %{
           main: %{
-            api_key: {:system_file, "OKEX_API_KEY"},
-            api_secret: {:system_file, "OKEX_API_SECRET"},
-            api_passphrase: {:system_file, "OKEX_API_PASSPHRASE"}
+            api_key: test_credential,
+            api_secret: test_credential,
+            api_passphrase: test_credential
           }
         },
         opts: %{}
@@ -168,9 +171,9 @@ if config_env() == :test do
         adapter: Tai.VenueAdapters.OkEx,
         credentials: %{
           main: %{
-            api_key: {:system_file, "OKEX_API_KEY"},
-            api_secret: {:system_file, "OKEX_API_SECRET"},
-            api_passphrase: {:system_file, "OKEX_API_PASSPHRASE"}
+            api_key: test_credential,
+            api_secret: test_credential,
+            api_passphrase: test_credential
           }
         },
         opts: %{}
@@ -180,9 +183,9 @@ if config_env() == :test do
         adapter: Tai.VenueAdapters.OkEx,
         credentials: %{
           main: %{
-            api_key: {:system_file, "OKEX_API_KEY"},
-            api_secret: {:system_file, "OKEX_API_SECRET"},
-            api_passphrase: {:system_file, "OKEX_API_PASSPHRASE"}
+            api_key: test_credential,
+            api_secret: test_credential,
+            api_passphrase: test_credential
           }
         },
         opts: %{}
@@ -202,8 +205,8 @@ if config_env() == :test do
         adapter: Tai.VenueAdapters.Binance,
         credentials: %{
           main: %{
-            api_key: {:system_file, "BINANCE_API_KEY"},
-            secret_key: {:system_file, "BINANCE_API_SECRET"}
+            api_key: test_credential,
+            secret_key: test_credential
           }
         }
       ],
@@ -212,8 +215,8 @@ if config_env() == :test do
         adapter: Tai.VenueAdapters.Deribit,
         credentials: %{
           main: %{
-            client_id: {:system_file, "DERIBIT_CLIENT_ID"},
-            client_secret: {:system_file, "DERIBIT_CLIENT_SECRET"}
+            client_id: test_credential,
+            client_secret: test_credential
           }
         }
       ],
@@ -223,9 +226,9 @@ if config_env() == :test do
         credentials: %{
           main: %{
             api_url: "https://api-public.sandbox.pro.coinbase.com",
-            api_key: {:system_file, "GDAX_API_KEY"},
-            api_secret: {:system_file, "GDAX_API_SECRET"},
-            api_passphrase: {:system_file, "GDAX_API_PASSPHRASE"}
+            api_key: test_credential,
+            api_secret: test_credential,
+            api_passphrase: test_credential
           }
         }
       ],
@@ -234,8 +237,8 @@ if config_env() == :test do
         adapter: Tai.VenueAdapters.Ftx,
         credentials: %{
           main: %{
-            api_key: {:system_file, "FTX_API_KEY"},
-            api_secret: {:system_file, "FTX_API_SECRET"}
+            api_key: test_credential,
+            api_secret: test_credential
           }
         }
       ],
@@ -244,8 +247,8 @@ if config_env() == :test do
         adapter: Tai.VenueAdapters.DeltaExchange,
         credentials: %{
           main: %{
-            api_key: {:system_file, "DELTA_EXCHANGE_API_KEY"},
-            api_secret: {:system_file, "DELTA_EXCHANGE_API_SECRET"}
+            api_key: test_credential,
+            api_secret: test_credential
           }
         }
       ]
