@@ -12,7 +12,7 @@ defmodule Tai.VenueAdapters.Binance.Products do
     end
   end
 
-  def build(venue_product, venue_id, market) do
+  defp build(venue_product, venue_id, market) do
     base_asset = Map.fetch!(venue_product, "baseAsset")
     quote_asset = Map.fetch!(venue_product, "quoteAsset")
     venue_symbol = Map.fetch!(venue_product, "symbol")

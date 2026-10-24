@@ -121,7 +121,7 @@ config :tai,
   }
 ```
 
-Perpetual contracts are normalized as `:swap`; dated contracts are normalized as `:future`. Spot symbols use `base_quote` (for example `btc_usdt`), while derivative symbols use Binance's lowercased venue symbol (for example `btcusdt` or `btcusd_250627`). Derivative trading currently supports Binance one-way position mode; hedge-mode positions are rejected because Tai stores one position per product. Set `opts: %{stream_endpoint: "..."}` to override a WebSocket endpoint. REST domains can be overridden through the `:ex_binance` `:spot_domain`, `:usd_margin_futures_domain`, and `:coin_margin_futures_domain` settings.
+Perpetual contracts are normalized as `:swap`; dated contracts are normalized as `:future`. Spot symbols use `base_quote` (for example `btc_usdt`), while derivative symbols use Binance's lowercased venue symbol (for example `btcusdt` or `btcusd_250627`). Derivative trading currently supports Binance one-way position mode; hedge-mode positions are rejected because Tai stores one position per product. REST domains can be overridden through the `:ex_binance` `:spot_domain`, `:usd_margin_futures_domain`, and `:coin_margin_futures_domain` settings.
 
 ## Logging
 

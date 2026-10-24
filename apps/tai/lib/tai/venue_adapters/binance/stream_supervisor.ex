@@ -36,7 +36,7 @@ defmodule Tai.VenueAdapters.Binance.StreamSupervisor do
     snapshot_depth = Map.get(stream.venue.opts, :snapshot_depth, 50)
     process_order_book_children = build_process_order_book_children(stream.markets, snapshot_depth)
     market = stream.markets |> List.first() |> market()
-    endpoint = Map.get(stream.venue.opts, :stream_endpoint, Market.websocket_endpoint(market))
+    endpoint = Market.websocket_endpoint(market)
 
     system = [
       {RouteOrderBooks, [venue_id: stream.venue.id, order_books: stream.markets]},
