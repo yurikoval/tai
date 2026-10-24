@@ -19,11 +19,15 @@ defmodule Tai.VenueAdapters.Binance.Error do
   def normalize({:error, {:binance_error, %{"code" => -1008}}}), do: {:error, :overloaded}
   def normalize({:error, {:binance_error, %{"code" => -2011}}}), do: {:error, :not_found}
 
-  def normalize({:error, {:binance_error, %{"code" => code}}}) when code in [-2010, -2018, -2019],
-    do: {:error, :insufficient_balance}
+  def normalize(
+        {:error,
+         {:binance_error,
+          %{"code" => -2010, "msg" => "Account has insufficient balance for requested action."}}}
+      ),
+      do: {:error, :insufficient_balance}
 
-  def normalize({:error, {:binance_error, %{"code" => -2022}}}),
-    do: {:error, :insufficient_position}
+  def normalize({:error, {:binance_error, %{"code" => code}}}) when code in [-2018, -2019],
+    do: {:error, :insufficient_balance}
 
   def normalize({:error, {:binance_error, %{"code" => -4061}}}),
     do: {:error, {:unhandled, :hedge_mode_not_supported}}

@@ -66,6 +66,8 @@ defmodule Tai.VenueAdapters.Binance.Stream.Connection do
   @impl true
   def subscribe(:depth, state) do
     if Enum.any?(state.markets) do
+      prepare_order_books(state.markets)
+
       channels =
         state.markets
         |> stream_symbols
@@ -79,7 +81,7 @@ defmodule Tai.VenueAdapters.Binance.Stream.Connection do
         }
         |> Jason.encode!()
 
-      state = state |> add_request()
+      state = add_request(state, :depth)
       {:reply, {:text, msg}, state}
     else
       {:ok, state}
@@ -102,7 +104,7 @@ defmodule Tai.VenueAdapters.Binance.Stream.Connection do
         }
         |> Jason.encode!()
 
-      state = state |> add_request()
+      state = add_request(state, :trades)
       {:reply, {:text, msg}, state}
     else
       {:ok, state}
@@ -111,8 +113,13 @@ defmodule Tai.VenueAdapters.Binance.Stream.Connection do
 
   @impl true
   def on_msg(%{"id" => id, "result" => nil}, _received_at, state) do
-    pending_requests = Map.delete(state.requests.pending_requests, id)
+    {channel, pending_requests} = Map.pop(state.requests.pending_requests, id)
     requests = %{state.requests | pending_requests: pending_requests}
+
+    if channel == :depth do
+      :ok = sync_order_books(state.markets)
+    end
+
     {:ok, %{state | requests: requests}}
   end
 
@@ -126,6 +133,32 @@ defmodule Tai.VenueAdapters.Binance.Stream.Connection do
   def on_msg(msg, received_at_, state) do
     msg |> forward(:optional_channels, received_at_, state)
     {:ok, state}
+  end
+
+  defp add_request(state, channel) do
+    request_id = state.requests.next_request_id
+    state = add_request(state)
+    pending_requests = Map.put(state.requests.pending_requests, request_id, channel)
+    %{state | requests: %{state.requests | pending_requests: pending_requests}}
+  end
+
+  defp prepare_order_books(markets) do
+    Enum.each(markets, fn product ->
+      product.venue_id
+      |> Stream.ProcessOrderBook.to_name(product.venue_symbol)
+      |> Stream.ProcessOrderBook.prepare_snapshot()
+    end)
+  end
+
+  defp sync_order_books(markets) do
+    Enum.reduce_while(markets, :ok, fn product, :ok ->
+      result =
+        product.venue_id
+        |> Stream.ProcessOrderBook.to_name(product.venue_symbol)
+        |> Stream.ProcessOrderBook.sync_snapshot()
+
+      if result == :ok, do: {:cont, :ok}, else: {:halt, result}
+    end)
   end
 
   defp stream_symbols(markets) do

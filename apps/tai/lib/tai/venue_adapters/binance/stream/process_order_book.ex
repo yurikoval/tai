@@ -6,7 +6,7 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
 
   defmodule State do
     @enforce_keys ~w[product]a
-    defstruct [:product, :snapshot_depth, :last_update_id, bridged: false]
+    defstruct [:product, :snapshot_depth, :last_update_id, buffered_updates: [], bridged: false]
   end
 
   @type product :: Tai.Venues.Product.t()
@@ -22,6 +22,7 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
       product: product,
       snapshot_depth: Keyword.get(opts, :snapshot_depth),
       last_update_id: nil,
+      buffered_updates: [],
       bridged: false
     }
 
@@ -31,24 +32,48 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
   @spec to_name(Tai.Venue.id(), Tai.Venues.Product.venue_symbol()) :: atom
   def to_name(venue, venue_symbol), do: :"#{__MODULE__}_#{venue}_#{venue_symbol}"
 
-  @impl true
-  def init(%State{snapshot_depth: nil} = state), do: {:ok, state}
+  def prepare_snapshot(server), do: GenServer.call(server, :prepare_snapshot)
+  def sync_snapshot(server), do: GenServer.call(server, :sync_snapshot, :infinity)
 
-  def init(state) do
-    case sync_snapshot(state) do
-      {:ok, state} -> {:ok, state}
-      {:error, reason} -> {:stop, reason}
+  @impl true
+  def init(state), do: {:ok, state}
+
+  @impl true
+  def handle_call(:prepare_snapshot, _from, state) do
+    state = %{state | last_update_id: nil, buffered_updates: [], bridged: false}
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:sync_snapshot, _from, %State{snapshot_depth: nil} = state),
+    do: {:reply, :ok, state}
+
+  def handle_call(:sync_snapshot, _from, state) do
+    case replace_from_snapshot(state) do
+      {:ok, state} -> {:reply, :ok, replay_buffered_updates(state)}
+      {:error, reason} -> {:reply, {:error, reason}, state}
     end
   end
 
   @impl true
-  def handle_cast({:update, %{"U" => first, "u" => last} = msg, received_at}, state) do
-    {:noreply, process_sequenced(msg, received_at, first, last, state, true)}
+  def handle_cast(
+        {:update, _msg, _received_at} = update,
+        %State{snapshot_depth: depth, last_update_id: nil} = state
+      )
+      when not is_nil(depth) do
+    {:noreply, %{state | buffered_updates: [update | state.buffered_updates]}}
   end
 
   def handle_cast({:update, msg, received_at}, state) do
+    {:noreply, process_update(msg, received_at, state)}
+  end
+
+  defp process_update(%{"U" => first, "u" => last} = msg, received_at, state) do
+    process_sequenced(msg, received_at, first, last, state, true)
+  end
+
+  defp process_update(msg, received_at, state) do
     apply_changes(msg, received_at, state)
-    {:noreply, state}
+    state
   end
 
   defp process_sequenced(msg, received_at, _first, last, %{last_update_id: nil} = state, _) do
@@ -89,7 +114,7 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
   defp resync(_msg, _received_at, _first, _last, %{snapshot_depth: nil} = state, true), do: state
 
   defp resync(msg, received_at, first, last, state, true) do
-    case sync_snapshot(state) do
+    case replace_from_snapshot(state) do
       {:ok, synced_state} ->
         process_sequenced(msg, received_at, first, last, synced_state, false)
 
@@ -98,12 +123,20 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBook do
     end
   end
 
-  defp sync_snapshot(state) do
+  defp replace_from_snapshot(state) do
     with {:ok, change_set, last_update_id} <-
            Snapshot.fetch(state.product, state.snapshot_depth) do
       OrderBook.replace(change_set)
       {:ok, %{state | last_update_id: last_update_id, bridged: false}}
     end
+  end
+
+  defp replay_buffered_updates(state) do
+    state.buffered_updates
+    |> Enum.reverse()
+    |> Enum.reduce(%{state | buffered_updates: []}, fn {:update, msg, received_at}, state ->
+      process_update(msg, received_at, state)
+    end)
   end
 
   defp apply_changes(

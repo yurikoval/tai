@@ -1,5 +1,6 @@
 defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBookTest do
   use Tai.TestSupport.DataCase, async: false
+  import Mock
   alias Tai.VenueAdapters.Binance.Stream.ProcessOrderBook
   alias Tai.Markets.{OrderBook, PricePoint, Quote}
 
@@ -70,6 +71,51 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBookTest do
     assert Enum.at(market_quote.asks, 0) == %PricePoint{price: 101.0, size: 11.0}
     assert %DateTime{} = market_quote.last_venue_timestamp
     assert market_quote.last_received_at != nil
+  end
+
+  test "buffers depth events until the snapshot is published", %{pid: pid} do
+    spot_product = %{@product | type: :spot}
+
+    :sys.replace_state(pid, fn state ->
+      %{
+        state
+        | product: spot_product,
+          snapshot_depth: 5,
+          last_update_id: nil,
+          buffered_updates: [],
+          bridged: false
+      }
+    end)
+
+    data = %{
+      "E" => 1_569_054_255_636,
+      "s" => @product.venue_symbol,
+      "U" => 101,
+      "u" => 101,
+      "b" => [["100", "15"]],
+      "a" => [["101", "11"]]
+    }
+
+    GenServer.cast(pid, {:update, data, Timex.now()})
+
+    with_mock ExBinance.Rest.SpotClient,
+      get: fn "/api/v3/depth", %{symbol: "XBTUSD", limit: 5} ->
+        {:ok,
+         %{
+           "lastUpdateId" => 100,
+           "bids" => [["99", "10"]],
+           "asks" => [["102", "12"]]
+         }}
+      end do
+      assert :ok = ProcessOrderBook.sync_snapshot(pid)
+    end
+
+    assert_receive %Quote{} = snapshot_quote
+    assert Enum.at(snapshot_quote.bids, 0) == %PricePoint{price: 99.0, size: 10.0}
+
+    assert_receive %Quote{} = updated_quote
+    assert Enum.at(updated_quote.bids, 0) == %PricePoint{price: 100.0, size: 15.0}
+    assert Enum.at(updated_quote.asks, 0) == %PricePoint{price: 101.0, size: 11.0}
   end
 
   test "accepts the first spot event after the snapshot", %{pid: pid} do

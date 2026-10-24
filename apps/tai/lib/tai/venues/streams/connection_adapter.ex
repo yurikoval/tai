@@ -17,7 +17,7 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
     @type t :: %Requests{
             next_request_id: next_request_id,
             pending_requests: %{
-              optional(next_request_id) => pos_integer
+              optional(next_request_id) => pos_integer | atom
             }
           }
 
