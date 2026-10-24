@@ -77,7 +77,7 @@ defmodule Tai.Mixfile do
       {:timex, "~> 3.6"},
       {:stored, "~> 0.0.8"},
       {:vex, "~> 0.7"},
-      {:websockex, "~> 0.4.3"},
+      {:websockex, "~> 0.5.1", override: true},
       {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
       {:exvcr, "~> 0.15.1", only: [:dev, :test]},
       {:logger_file_backend_with_formatters, "~> 0.0.1", only: [:dev, :test]},

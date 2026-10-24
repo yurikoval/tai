@@ -236,9 +236,8 @@ defmodule Tai.Venues.ConfigTest do
     test "raises a KeyError when there is no adapter specified" do
       config = Tai.Config.parse(venues: %{invalid_exchange_a: [start_on_boot: true]})
 
-      assert_raise KeyError, "key :adapter not found in: [start_on_boot: true]", fn ->
-        Tai.Venues.Config.parse(config)
-      end
+      error = assert_raise KeyError, fn -> Tai.Venues.Config.parse(config) end
+      assert error.key == :adapter
     end
   end
 end
