@@ -74,7 +74,7 @@ defmodule Tai.Mixfile do
       {:tai_events, path: "../../packages/tai_events"},
       {:telemetry, "~> 0.4 or ~> 1.0"},
       {:timex, "~> 3.6"},
-      {:stored, "~> 0.0.8"},
+      {:stored, path: "../../packages/stored"},
       {:vex, "~> 0.7"},
       {:websockex, "~> 0.5.1", override: true},
       {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
