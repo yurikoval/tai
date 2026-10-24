@@ -10,12 +10,12 @@ defmodule Tai.Advisors.Groups.RichConfig do
   end
 
   defp parse_item({k, {{venue_id, product_symbol}, :product}}, acc, provider) do
-    product = provider.products |> find_product(venue_id, product_symbol)
+    product = provider.products() |> find_product(venue_id, product_symbol)
     acc |> Map.put(k, product)
   end
 
   defp parse_item({k, {{venue_id, product_symbol, credential_id}, :fee}}, acc, provider) do
-    fee = provider.fees |> find_fee(venue_id, product_symbol, credential_id)
+    fee = provider.fees() |> find_fee(venue_id, product_symbol, credential_id)
     acc |> Map.put(k, fee)
   end
 

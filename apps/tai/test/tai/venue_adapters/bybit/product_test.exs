@@ -38,8 +38,8 @@ defmodule Tai.VenuesAdapters.Bybit.ProductTest do
       assert product.min_size == Decimal.new("1")
       assert product.value == Decimal.new("1")
       assert product.value_side == :quote
-      assert product.type != nil
-      assert product.is_inverse != nil
+      assert product.type == :swap
+      assert product.is_inverse == true
     end
 
     test "sets type to :future when it ends with digits and :swap otherwise" do
