@@ -9,6 +9,7 @@ defmodule Tai.Venues.ProductStoreTest do
     end)
 
     {:ok, _} = Application.ensure_all_started(:tai)
+    :ok = Tai.Venues.ProductStore.clear()
 
     product =
       struct(Tai.Venues.Product, %{
