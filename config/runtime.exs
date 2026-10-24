@@ -42,18 +42,18 @@ if config_env() == :dev do
         # TODO: Support other types of streams e.g...
         # index_streams: "btc_usd",
         # candle_streams: %{
-        #   min_1: "binance.btc_usdt ftx.btc-perp"
+        #   min_1: "binance.btc_usdt gdax.btc_usd"
         # },
         # indicator_streams: %{
-        #   distance_from_mean_avg_fast: "binance.btc_usdt ftx.btc-perp",
-        #   distance_from_mean_avg_slow: "binance.btc_usdt ftx.btc-perp"
+        #   distance_from_mean_avg_fast: "binance.btc_usdt gdax.btc_usd",
+        #   distance_from_mean_avg_slow: "binance.btc_usdt gdax.btc_usd"
         # }
-        market_streams: "binance.btc_usdt ftx.btc-perp"
+        market_streams: "binance.btc_usdt gdax.btc_usd"
       },
       log_trade: %{
         advisor: Examples.LogTrade.Advisor,
         factory: Tai.Advisors.Factories.OnePerProduct,
-        market_streams: "ftx.btc-perp"
+        market_streams: "binance.btc_usdt"
       }
     }
 
@@ -69,12 +69,6 @@ if config_env() == :dev do
         adapter: Tai.VenueAdapters.Gdax,
         products: "btc_usd eth_usd",
         market_streams: "* -eth_usd"
-      ],
-      ftx: [
-        start_on_boot: true,
-        adapter: Tai.VenueAdapters.Ftx,
-        products: "btc/usd btc-perp btc-0924",
-        market_streams: "* -btc/usd"
       ],
       delta_exchange: [
         start_on_boot: true,
@@ -232,16 +226,6 @@ if config_env() == :test do
           }
         }
       ],
-      ftx: [
-        enabled: true,
-        adapter: Tai.VenueAdapters.Ftx,
-        credentials: %{
-          main: %{
-            api_key: test_credential,
-            api_secret: test_credential
-          }
-        }
-      ],
       delta_exchange: [
         enabled: true,
         adapter: Tai.VenueAdapters.DeltaExchange,
@@ -263,7 +247,6 @@ if config_env() == :test do
     :mock,
     :okex,
     :huobi,
-    :ftx,
     :delta_exchange
   ]
 
@@ -273,17 +256,15 @@ if config_env() == :test do
     :deribit,
     :gdax,
     :mock,
-    :okex,
-    :ftx
+    :okex
   ]
 
   config :tai, :test_venue_adapters_accounts_error, [:bitmex]
-  config :tai, :test_venue_adapters_maker_taker_fees, [:mock, :binance, :gdax, :okex, :ftx]
+  config :tai, :test_venue_adapters_maker_taker_fees, [:mock, :binance, :gdax, :okex]
 
   config :tai, :test_venue_adapters_create_order_gtc_accepted, [
     :binance,
     :bitmex,
-    :ftx,
     :okex_futures,
     :okex_spot,
     :okex_swap
@@ -291,11 +272,11 @@ if config_env() == :test do
 
   config :tai, :test_venue_adapters_create_order_fok, [:bitmex, :binance]
   config :tai, :test_venue_adapters_create_order_ioc, []
-  config :tai, :test_venue_adapters_create_order_ioc_accepted, [:binance, :bitmex, :ftx]
+  config :tai, :test_venue_adapters_create_order_ioc_accepted, [:binance, :bitmex]
   config :tai, :test_venue_adapters_create_order_close, [:okex_futures, :okex_swap]
 
   config :tai, :test_venue_adapters_create_order_error, [:bitmex]
-  config :tai, :test_venue_adapters_create_order_error_size_too_small, [:ftx]
+  config :tai, :test_venue_adapters_create_order_error_size_too_small, []
 
   config :tai, :test_venue_adapters_create_order_error_insufficient_balance, [
     :bitmex,
@@ -310,7 +291,6 @@ if config_env() == :test do
   config :tai, :test_venue_adapters_cancel_order_accepted, [
     :binance,
     :bitmex,
-    :ftx,
     :okex_futures,
     :okex_swap,
     :okex_spot
@@ -319,8 +299,7 @@ if config_env() == :test do
   config :tai, :test_venue_adapters_cancel_order_error_not_found, [
     :binance,
     :okex_futures,
-    :okex_swap,
-    :ftx
+    :okex_swap
   ]
 
   config :tai, :test_venue_adapters_cancel_order_error_timeout, [
@@ -333,7 +312,7 @@ if config_env() == :test do
   config :tai, :test_venue_adapters_cancel_order_error_nonce_not_increasing, [:bitmex]
   config :tai, :test_venue_adapters_cancel_order_error_rate_limited, [:bitmex]
   config :tai, :test_venue_adapters_cancel_order_error_unhandled, [:bitmex, :binance]
-  config :tai, :test_venue_adapters_with_positions, [:bitmex, :deribit, :okex, :ftx]
+  config :tai, :test_venue_adapters_with_positions, [:bitmex, :deribit, :okex]
 
   config :exvcr,
     filter_request_headers: [
@@ -355,10 +334,6 @@ if config_env() == :test do
       "OK-ACCESS-PASSPHRASE",
       # Deribit
       "Authorization",
-      # FTX
-      "FTX-KEY",
-      "FTX-SIGN",
-      "FTX-TS",
       # Delta Exchange
       "api-key",
       "signature",
@@ -369,18 +344,14 @@ if config_env() == :test do
       [pattern: "\"id\":\"[a-z0-9-]{36,36}\"", placeholder: "\"id\":\"***\""],
       [pattern: "\"profile_id\":\"[a-z0-9-]{36,36}\"", placeholder: "\"profile_id\":\"***\""],
       # Binance
-      [pattern: "signature=[A-Z0-9]+", placeholder: "signature=***"],
-      # FTX
-      [pattern: "username\":\"[a-zA-Z0-9@.]+\"", placeholder: "username\":\"***\""]
+      [pattern: "signature=[A-Z0-9]+", placeholder: "signature=***"]
     ],
     response_headers_blacklist: [
       # Shared
       "Set-Cookie",
       "ETag",
       "cf-request-id",
-      "CF-RAY",
-      # FTX
-      "account-id"
+      "CF-RAY"
     ]
 
   config :echo_boy, port: 4100

@@ -125,11 +125,9 @@ defmodule Tai.Venues.Adapters.CreateOrderIocTest do
   end
 
   defp venue_product_symbol("bitmex"), do: "XBTH19"
-  defp venue_product_symbol("ftx"), do: "BTC/USD"
   defp venue_product_symbol(_), do: "LTC-BTC"
 
   defp product_symbol("bitmex"), do: "xbth19"
-  defp product_symbol("ftx"), do: :"btc/usd"
   defp product_symbol(_), do: "ltc_btc"
 
   defp price("bitmex", :buy, :ioc, :filled), do: Decimal.new("4455.5")
@@ -138,8 +136,6 @@ defmodule Tai.Venues.Adapters.CreateOrderIocTest do
   defp price("bitmex", :sell, :ioc, :partially_filled), do: Decimal.new("3749.5")
   defp price("bitmex", :buy, :ioc, :unfilled), do: Decimal.new("4450.5")
   defp price("bitmex", :sell, :ioc, :unfilled), do: Decimal.new("3755.5")
-  defp price("ftx", :buy, :ioc, :unfilled), do: Decimal.new("25000.5")
-  defp price("ftx", :sell, :ioc, :unfilled), do: Decimal.new("75000.5")
   defp price("bitmex", :buy, _, _), do: Decimal.new("10000.5")
   defp price("bitmex", :sell, _, _), do: Decimal.new("1000.5")
   defp price(_, :buy, _, _), do: Decimal.new("0.007")
@@ -149,7 +145,6 @@ defmodule Tai.Venues.Adapters.CreateOrderIocTest do
   defp qty("bitmex", _, :ioc, _), do: Decimal.new(10)
   defp qty("bitmex", :buy, _, _), do: Decimal.new(1)
   defp qty("bitmex", :sell, _, _), do: Decimal.new(1)
-  defp qty("ftx", _, _, :unfilled), do: Decimal.new("0.0001")
   defp qty(_, :buy, _, _), do: Decimal.new("0.2")
   defp qty(_, :sell, _, _), do: Decimal.new("0.1")
 end

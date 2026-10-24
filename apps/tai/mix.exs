@@ -53,8 +53,6 @@ defmodule Tai.Mixfile do
       {:ex_delta_exchange, "~> 0.0.3"},
       # {:ex_deribit, github: "fremantle-industries/ex_deribit", branch: "main"},
       {:ex_deribit, "~> 0.0.9"},
-      # {:ex_ftx, github: "fremantle-industries/ex_ftx", branch: "main"},
-      {:ex_ftx, "~> 0.0.13"},
       # {:ex_okex, github: "fremantle-industries/ex_okex", branch: "main"},
       {:ex_okex, "~> 0.6"},
       {:ex_gdax, "~> 0.2"},
@@ -84,8 +82,8 @@ defmodule Tai.Mixfile do
       {:echo_boy, "~> 0.6", runtime: false, optional: true},
       {:mock, "~> 0.3", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev},
-
-      {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false} # TODO: remove after dialyzer umbrella support is added
+      # TODO: remove after dialyzer umbrella support is added
+      {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false}
     ]
   end
 
