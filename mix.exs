@@ -5,6 +5,7 @@ defmodule TaiMonorepo.MixProject do
     [
       apps_path: "apps",
       version: "0.0.75",
+      elixir: "~> 1.20.0",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),

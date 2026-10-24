@@ -9,7 +9,7 @@ defmodule TaiEvents.MixProject do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: "~> 1.11",
+      elixir: "~> 1.20.0",
       package: package(),
       start_permanent: Mix.env() == :prod,
       description: description(),
