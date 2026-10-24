@@ -51,7 +51,7 @@ Here's an example of an advisor that logs the spread between multiple products o
 
 ## Install
 
-`tai` requires Elixir 1.11+ & Erlang/OTP 22+. Add `tai` to your list of dependencies in `mix.exs`
+`tai` supports Elixir 1.20.x on Erlang/OTP 27.x. Add `tai` to your list of dependencies in `mix.exs`
 
 ```elixir
 def deps do
