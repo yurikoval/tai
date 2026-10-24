@@ -72,6 +72,71 @@ defmodule Tai.VenueAdapters.Binance.Stream.ProcessOrderBookTest do
     assert market_quote.last_received_at != nil
   end
 
+  test "accepts the first spot event after the snapshot", %{pid: pid} do
+    spot_product = %{@product | type: :spot}
+
+    :sys.replace_state(pid, &%{&1 | product: spot_product, last_update_id: 100, bridged: false})
+
+    data = %{
+      "E" => 1_569_054_255_636,
+      "s" => @product.venue_symbol,
+      "U" => 101,
+      "u" => 101,
+      "b" => [["100", "15"]],
+      "a" => [["101", "11"]]
+    }
+
+    GenServer.cast(pid, {:update, data, Timex.now()})
+
+    assert_receive %Quote{} = market_quote
+    assert Enum.at(market_quote.bids, 0) == %PricePoint{price: 100.0, size: 15.0}
+  end
+
+  test "accepts the first futures event that bridges the snapshot", %{pid: pid} do
+    :sys.replace_state(pid, &%{&1 | last_update_id: 100, bridged: false})
+
+    data = %{
+      "E" => 1_569_054_255_636,
+      "s" => @product.venue_symbol,
+      "U" => 100,
+      "u" => 101,
+      "pu" => 99,
+      "b" => [["100", "15"]],
+      "a" => [["101", "11"]]
+    }
+
+    GenServer.cast(pid, {:update, data, Timex.now()})
+
+    assert_receive %Quote{} = market_quote
+    assert Enum.at(market_quote.bids, 0) == %PricePoint{price: 100.0, size: 15.0}
+  end
+
+  test "rejects depth updates with a sequence gap", %{pid: pid} do
+    first = %{
+      "E" => 1_569_054_255_636,
+      "s" => @product.venue_symbol,
+      "U" => 1,
+      "u" => 1,
+      "b" => [["100", "15"]],
+      "a" => [["101", "11"]]
+    }
+
+    GenServer.cast(pid, {:update, first, Timex.now()})
+    assert_receive %Quote{}
+
+    gap = %{
+      "E" => 1_569_054_255_637,
+      "s" => @product.venue_symbol,
+      "U" => 3,
+      "u" => 3,
+      "b" => [["99", "20"]],
+      "a" => []
+    }
+
+    GenServer.cast(pid, {:update, gap, Timex.now()})
+    refute_receive %Quote{}, 50
+  end
+
   test "can delete existing price points from the order book", %{pid: pid} do
     snapshot =
       struct(OrderBook.ChangeSet,

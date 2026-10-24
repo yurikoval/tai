@@ -102,6 +102,27 @@ config :tai,
   }
 ```
 
+### Binance markets
+
+Configure Binance Spot, USD-M futures, and COIN-M futures as separate venue instances because each market uses different REST and WebSocket endpoints:
+
+```elixir
+config :tai,
+  venues: %{
+    binance: [adapter: Tai.VenueAdapters.Binance, products: "btc_usdt"],
+    binance_usd_futures: [
+      adapter: Tai.VenueAdapters.Binance.UsdMarginFutures,
+      products: "btcusdt"
+    ],
+    binance_coin_futures: [
+      adapter: Tai.VenueAdapters.Binance.CoinMarginFutures,
+      products: "btcusd_perp"
+    ]
+  }
+```
+
+Perpetual contracts are normalized as `:swap`; dated contracts are normalized as `:future`. Spot symbols use `base_quote` (for example `btc_usdt`), while derivative symbols use Binance's lowercased venue symbol (for example `btcusdt` or `btcusd_250627`). Derivative trading currently supports Binance one-way position mode; hedge-mode positions are rejected because Tai stores one position per product. Set `opts: %{stream_endpoint: "..."}` to override a WebSocket endpoint. REST domains can be overridden through the `:ex_binance` `:spot_domain`, `:usd_margin_futures_domain`, and `:coin_margin_futures_domain` settings.
+
 ## Logging
 
 `tai` uses a system wide event bus and forwards these events to the Elixir

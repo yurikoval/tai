@@ -226,7 +226,11 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
 
       defp add_request(state) do
         pending_requests =
-          Map.put(state.requests, state.requests.next_request_id, System.monotonic_time())
+          Map.put(
+            state.requests.pending_requests,
+            state.requests.next_request_id,
+            System.monotonic_time()
+          )
 
         requests = %{
           state.requests

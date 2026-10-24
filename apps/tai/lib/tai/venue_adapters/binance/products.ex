@@ -1,101 +1,114 @@
 defmodule Tai.VenueAdapters.Binance.Products do
-  def products(venue_id) do
-    with {:ok, %ExBinance.ExchangeInfo{symbols: venue_products}} <-
-           ExBinance.Spot.Public.exchange_info() do
-      products = Enum.map(venue_products, &build(&1, venue_id))
-      {:ok, products}
-    else
-      {:error, {:binance_error, %{"code" => -2014, "msg" => "API-key format invalid." = reason}}} ->
-        {:error, {:credentials, reason}}
+  alias Tai.VenueAdapters.Binance.{Error, Market, ProductStatus}
 
-      {:error, {:http_error, %HTTPoison.Error{reason: "timeout"}}} ->
-        {:error, :timeout}
+  def products(venue_id, market \\ :spot) do
+    client = Market.rest_client(market)
+    path = Market.exchange_info_path(market)
+
+    with {:ok, %{"symbols" => venue_products}} <- client.get(path, %{}) do
+      {:ok, Enum.map(venue_products, &build(&1, venue_id, market))}
+    else
+      {:error, _} = error -> Error.normalize(error)
     end
   end
 
-  defp build(
-         %{
-           "baseAsset" => base_asset,
-           "quoteAsset" => quote_asset,
-           "symbol" => venue_symbol,
-           "status" => exchange_status,
-           "filters" => filters
-         },
-         venue_id
-       ) do
-    symbol = Tai.Symbol.build(base_asset, quote_asset)
-    {:ok, status} = Tai.VenueAdapters.Binance.ProductStatus.normalize(exchange_status)
-    {min_price, max_price, tick_size} = filters |> price_filter
-    {min_size, max_size, step_size} = filters |> size_filter
-
-    min_notional =
-      case filters |> notional_filter do
-        nil -> %Decimal{}
-        %Decimal{} = res -> res
-      end
+  def build(venue_product, venue_id, market) do
+    base_asset = Map.fetch!(venue_product, "baseAsset")
+    quote_asset = Map.fetch!(venue_product, "quoteAsset")
+    venue_symbol = Map.fetch!(venue_product, "symbol")
+    filters = Map.fetch!(venue_product, "filters")
+    {min_price, max_price, tick_size} = price_filter(filters)
+    {min_size, max_size, step_size} = size_filter(filters)
 
     %Tai.Venues.Product{
       venue_id: venue_id,
-      symbol: symbol,
+      symbol: to_symbol(venue_product, market),
       venue_symbol: venue_symbol,
-      base: base_asset |> downcase_and_atom(),
-      quote: quote_asset |> downcase_and_atom(),
+      base: downcase_and_atom(base_asset),
+      quote: downcase_and_atom(quote_asset),
       venue_base: base_asset,
       venue_quote: quote_asset,
-      status: status,
-      type: :spot,
+      status: status(venue_product),
+      type: type(venue_product, market),
+      listing: timestamp(venue_product["onboardDate"], market),
+      expiry: expiry(venue_product, market),
       collateral: false,
       price_increment: tick_size,
       size_increment: step_size,
       min_price: min_price,
       min_size: min_size,
-      min_notional: min_notional,
+      min_notional: notional_filter(filters),
       max_price: max_price,
       max_size: max_size,
-      value: Decimal.new(1),
-      value_side: :base,
+      value: value(venue_product, market),
+      value_side: value_side(market),
       is_quanto: false,
-      is_inverse: false
+      is_inverse: market == :coin_margin_futures
     }
   end
 
-  defp downcase_and_atom(str), do: str |> String.downcase() |> String.to_atom()
+  def to_symbol(%{"baseAsset" => base, "quoteAsset" => quote}, :spot) do
+    Tai.Symbol.build(base, quote)
+  end
 
-  @price_filter "PRICE_FILTER"
+  def to_symbol(%{"symbol" => venue_symbol}, _market), do: downcase_and_atom(venue_symbol)
+
+  def to_symbol(venue_symbol, _market) when is_binary(venue_symbol),
+    do: downcase_and_atom(venue_symbol)
+
+  defp status(venue_product) do
+    venue_product
+    |> Map.get("status", Map.get(venue_product, "contractStatus"))
+    |> ProductStatus.normalize()
+    |> case do
+      {:ok, status} -> status
+      {:error, :unknown_status} -> :unknown
+    end
+  end
+
+  defp type(_venue_product, :spot), do: :spot
+  defp type(%{"contractType" => "PERPETUAL"}, _market), do: :swap
+  defp type(_venue_product, _market), do: :future
+
+  defp expiry(%{"contractType" => "PERPETUAL"}, _market), do: nil
+  defp expiry(%{"deliveryDate" => value}, market), do: timestamp(value, market)
+  defp expiry(_, _market), do: nil
+
+  defp timestamp(_, :spot), do: nil
+  defp timestamp(nil, _market), do: nil
+  defp timestamp(value, _market), do: DateTime.from_unix!(value, :millisecond)
+
+  defp value(%{"contractSize" => contract_size}, :coin_margin_futures),
+    do: to_decimal(contract_size)
+
+  defp value(_, _market), do: Decimal.new(1)
+
+  defp value_side(:coin_margin_futures), do: :quote
+  defp value_side(_market), do: :base
+
   defp price_filter(filters) do
-    with %{"minPrice" => min, "maxPrice" => max, "tickSize" => tick} <-
-           find_filter(filters, @price_filter) do
-      {
-        min |> to_decimal(),
-        max |> to_decimal(),
-        tick |> to_decimal()
-      }
-    end
+    %{"minPrice" => min, "maxPrice" => max, "tickSize" => tick} =
+      find_filter(filters, "PRICE_FILTER")
+
+    {to_decimal(min), to_decimal(max), to_decimal(tick)}
   end
 
-  @size_filter "LOT_SIZE"
   defp size_filter(filters) do
-    with %{"minQty" => min, "maxQty" => max, "stepSize" => step} <-
-           find_filter(filters, @size_filter) do
-      {
-        min |> to_decimal(),
-        max |> to_decimal(),
-        step |> to_decimal()
-      }
-    end
+    %{"minQty" => min, "maxQty" => max, "stepSize" => step} =
+      find_filter(filters, "LOT_SIZE")
+
+    {to_decimal(min), to_decimal(max), to_decimal(step)}
   end
 
-  @notional_filter "NOTIONAL"
   defp notional_filter(filters) do
-    with %{"minNotional" => notional} <- find_filter(filters, @notional_filter) do
-      notional |> to_decimal()
+    case find_filter(filters, "NOTIONAL") || find_filter(filters, "MIN_NOTIONAL") do
+      %{"minNotional" => notional} -> to_decimal(notional)
+      %{"notional" => notional} -> to_decimal(notional)
+      nil -> nil
     end
   end
 
-  defp find_filter(filters, type) do
-    filters
-    |> Enum.find(fn f -> f["filterType"] == type end)
-  end
-
-  defp to_decimal(val), do: val |> Decimal.new() |> Decimal.normalize()
+  defp find_filter(filters, type), do: Enum.find(filters, &(&1["filterType"] == type))
+  defp downcase_and_atom(str), do: str |> String.downcase() |> String.to_atom()
+  defp to_decimal(val), do: val |> to_string() |> Decimal.new() |> Decimal.normalize()
 end
