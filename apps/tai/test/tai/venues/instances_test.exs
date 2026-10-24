@@ -45,7 +45,9 @@ defmodule Tai.Venues.InstancesTest do
 
   describe ".stop/1" do
     test "stops the supervised processes for a venue" do
-      assert {:ok, start_pid} = Tai.Venues.Supervisor.start(@venue)
+      assert {:ok, start_pid} =
+               DynamicSupervisor.start_child(Tai.Venues.Supervisor, {MockStart, @venue})
+
       assert {:ok, stream_pid} = Tai.Venues.StreamsSupervisor.start(@stream)
 
       assert Tai.Venues.Instances.stop(@venue) == :ok
