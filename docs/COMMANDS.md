@@ -195,5 +195,5 @@ Stops advisors with an optional filter
 
 ```
 iex(13)> stop_advisors where: [status: :running]
-Stopped advisors: 5 new, 0 already stopped
+Stopped advisors: 4 new, 0 already stopped
 ```
