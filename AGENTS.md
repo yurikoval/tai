@@ -23,7 +23,7 @@ Tests mirror these areas under `apps/tai/test/tai`. Start with the matching focu
 
 ## Project boundaries
 
-The root Mix project is an umbrella containing only `apps/*`. It does not include `packages/tai_events`; `apps/tai` uses the published `tai_events` package from Hex. Changes under `packages/tai_events` therefore require their own test run from that directory.
+The root Mix project is an umbrella containing only `apps/*`. It does not include `packages/tai_events` as an umbrella child, but `apps/tai` uses it through a local path dependency. Root compilation exercises the package code; its ExUnit suite still requires a separate test run from that directory.
 
 The standalone package shares the root `_build`, `deps`, and `mix.lock`. Run its tests after root checks to avoid changing shared artifacts before umbrella verification.
 
