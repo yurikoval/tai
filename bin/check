@@ -9,6 +9,10 @@ mix format --check-formatted
 CI=true mix test
 mix dialyzer
 
-cd packages/tai_events
+cd packages/stored
+mix format --check-formatted
+CI=true mix test
+
+cd ../tai_events
 mix format --check-formatted
 CI=true mix test

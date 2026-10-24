@@ -187,7 +187,7 @@ defmodule Tai.VenueAdapters.Mock.Stream.Connection do
       {side, price, venue_size}
     end)
     |> Enum.map(fn
-      {side, price, 0.0} -> {:delete, side, price}
+      {side, price, size} when size == 0.0 -> {:delete, side, price}
       {side, price, size} -> {:upsert, side, price, size}
     end)
   end

@@ -80,7 +80,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
         {price, size}
     end)
     |> Enum.map(fn
-      {price, 0.0} -> {:delete, side, price}
+      {price, size} when size == 0.0 -> {:delete, side, price}
       {price, size} -> {:upsert, side, price, size}
     end)
   end

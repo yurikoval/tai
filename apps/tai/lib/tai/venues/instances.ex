@@ -14,9 +14,11 @@ defmodule Tai.Venues.Instances do
 
   @spec find_stream(venue) :: {:ok, pid} | {:error, :not_found}
   def find_stream(venue) do
+    adapter = venue.adapter
+
     Tai.Venues.StreamsSupervisor.which_children()
     |> Enum.find(fn {:undefined, _pid, :supervisor, [mod]} ->
-      mod == venue.adapter.stream_supervisor
+      mod == adapter.stream_supervisor()
     end)
     |> case do
       nil -> {:error, :not_found}

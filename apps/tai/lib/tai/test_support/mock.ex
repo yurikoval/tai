@@ -7,7 +7,7 @@ defmodule Tai.TestSupport.Mock do
   @type credential_id :: Tai.Venue.credential_id()
   @type asset :: Tai.Venues.Account.asset()
   @type balance :: Decimal.t() | number | String.t()
-  @type record :: Stored.Backend.record()
+  @type stored_record :: Stored.Backend.stored_record()
   @type record_key :: Stored.Backend.key()
 
   @spec mock_venue(venue | map | [{atom, term}]) :: {:ok, {key :: term, resource :: struct}}
@@ -47,7 +47,7 @@ defmodule Tai.TestSupport.Mock do
   end
 
   @spec mock_account(venue_id, credential_id, asset, balance, balance) ::
-          {:ok, {record_key, record}}
+          {:ok, {record_key, stored_record}}
   def mock_account(venue_id, credential_id, asset, free, locked) do
     free = Tai.Utils.Decimal.cast!(free)
     locked = Tai.Utils.Decimal.cast!(locked)
@@ -65,7 +65,7 @@ defmodule Tai.TestSupport.Mock do
     |> Tai.Venues.AccountStore.put()
   end
 
-  @spec mock_fleet_config(map) :: {:ok, {record_key, record}}
+  @spec mock_fleet_config(map) :: {:ok, {record_key, stored_record}}
   def mock_fleet_config(attrs) do
     factory = Map.get(attrs, :factory, Tai.Advisors.Factories.OnePerProduct)
     advisor = Map.get(attrs, :advisor, Support.NoopAdvisor)
@@ -89,7 +89,7 @@ defmodule Tai.TestSupport.Mock do
     Tai.Fleets.FleetConfigStore.put(fleet_config)
   end
 
-  @spec mock_advisor_config(map) :: {:ok, {record_key, record}}
+  @spec mock_advisor_config(map) :: {:ok, {record_key, stored_record}}
   def mock_advisor_config(attrs) do
     mod = Map.get(attrs, :mod, Support.NoopAdvisor)
     market_stream_keys = Map.get(attrs, :market_stream_keys, [])

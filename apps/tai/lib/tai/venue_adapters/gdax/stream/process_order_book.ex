@@ -78,9 +78,9 @@ defmodule Tai.VenueAdapters.Gdax.Stream.ProcessOrderBook do
       {side, price, size}
     end)
     |> Enum.map(fn
-      {"buy", price, 0.0} -> {:delete, :bid, price}
+      {"buy", price, size} when size == 0.0 -> {:delete, :bid, price}
       {"buy", price, size} -> {:upsert, :bid, price, size}
-      {"sell", price, 0.0} -> {:delete, :ask, price}
+      {"sell", price, size} when size == 0.0 -> {:delete, :ask, price}
       {"sell", price, size} -> {:upsert, :ask, price, size}
     end)
   end

@@ -4,7 +4,7 @@
 
 - `apps/tai`: the main Tai application and its tests.
 - `apps/examples`: example applications in the root umbrella.
-- `packages/tai_events`: a standalone package, not an umbrella child.
+- `packages/tai_events` and `packages/stored`: standalone packages, not umbrella children.
 - `config`: root umbrella configuration.
 - `docs`: user and architecture documentation.
 
@@ -23,9 +23,9 @@ Tests mirror these areas under `apps/tai/test/tai`. Start with the matching focu
 
 ## Project boundaries
 
-The root Mix project is an umbrella containing only `apps/*`. It does not include `packages/tai_events` as an umbrella child, but `apps/tai` uses it through a local path dependency. Root compilation exercises the package code; its ExUnit suite still requires a separate test run from that directory.
+The root Mix project is an umbrella containing only `apps/*`. It does not include `packages/tai_events` or `packages/stored` as umbrella children, but `apps/tai` uses both through local path dependencies. Root compilation exercises the package code; their ExUnit suites still require separate test runs from those directories.
 
-The standalone package shares the root `_build`, `deps`, and `mix.lock`. Run its tests after root checks to avoid changing shared artifacts before umbrella verification.
+The standalone packages share the root `_build`, `deps`, and `mix.lock`. Run their tests after root checks to avoid changing shared artifacts before umbrella verification.
 
 ## Safe workflow
 
@@ -55,7 +55,7 @@ mix test apps/tai/test/path/to/test.exs
 Run a focused standalone package test:
 
 ```bash
-cd packages/tai_events
+cd packages/stored # or packages/tai_events
 CI=true mix test test/path/to/test.exs
 ```
 
@@ -65,4 +65,4 @@ Run the complete local verification before handing off changes:
 bin/check
 ```
 
-`bin/check` assumes dependencies are installed. It generates migrations, checks formatting, runs root tests and Dialyzer, then checks and tests standalone `tai_events` last.
+`bin/check` assumes dependencies are installed. It generates migrations, checks formatting, runs root tests and Dialyzer, then checks and tests the standalone packages with `tai_events` last.

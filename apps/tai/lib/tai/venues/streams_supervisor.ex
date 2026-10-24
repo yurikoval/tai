@@ -9,7 +9,8 @@ defmodule Tai.Venues.StreamsSupervisor do
 
   @spec start(stream) :: DynamicSupervisor.on_start_child()
   def start(stream) do
-    spec = {stream.venue.adapter.stream_supervisor, stream}
+    adapter = stream.venue.adapter
+    spec = {adapter.stream_supervisor(), stream}
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 
