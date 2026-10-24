@@ -8,6 +8,6 @@ An event bus with events that can be serialized into JSON
 
 ```elixir
 def deps do
-  [{:tai_events, "~> 0.0.1"}]
+  [{:tai_events, "~> 0.0.2"}]
 end
 ```
