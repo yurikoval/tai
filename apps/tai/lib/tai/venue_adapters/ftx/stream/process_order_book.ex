@@ -78,7 +78,7 @@ defmodule Tai.VenueAdapters.Ftx.Stream.ProcessOrderBook do
     data
     |> Enum.map(&List.to_tuple/1)
     |> Enum.map(fn
-      {price, 0.0} -> {:delete, side, price}
+      {price, size} when size == 0.0 -> {:delete, side, price}
       {price, size} -> {:upsert, side, price, size}
     end)
   end

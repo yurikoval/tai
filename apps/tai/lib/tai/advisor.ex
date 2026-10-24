@@ -129,7 +129,7 @@ defmodule Tai.Advisor do
       def handle_continue({:handle_market_quote, market_quote}, state) do
         new_state =
           try do
-            with {:ok, new_store} <- handle_market_quote(market_quote, state) do
+            with {:ok, new_store} <- apply(__MODULE__, :handle_market_quote, [market_quote, state]) do
               %{state | store: new_store}
             else
               unhandled ->
@@ -164,7 +164,7 @@ defmodule Tai.Advisor do
       def handle_continue({:handle_trade, trade}, state) do
         new_state =
           try do
-            with {:ok, new_store} <- handle_trade(trade, state) do
+            with {:ok, new_store} <- apply(__MODULE__, :handle_trade, [trade, state]) do
               %{state | store: new_store}
             else
               unhandled ->

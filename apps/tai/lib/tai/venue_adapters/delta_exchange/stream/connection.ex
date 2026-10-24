@@ -80,10 +80,10 @@ defmodule Tai.VenueAdapters.DeltaExchange.Stream.Connection do
     case code do
       429 ->
         %{"limit_reset_in" => limit_reset_in} = context
-        Logger.error "Too many requests limit_reset_in=#{limit_reset_in}"
+        Logger.error("Too many requests limit_reset_in=#{limit_reset_in}")
 
       c ->
-        Logger.warn "Unhandled error code=#{c}, context=#{inspect(context)}"
+        Logger.warning("Unhandled error code=#{c}, context=#{inspect(context)}")
     end
 
     {:ok, state}

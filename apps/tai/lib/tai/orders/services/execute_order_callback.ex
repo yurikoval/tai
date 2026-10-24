@@ -32,7 +32,7 @@ defmodule Tai.Orders.Services.ExecuteOrderCallback do
     else
       {:error, :not_found} ->
         fn _, current, _ ->
-          Logger.warn("order callback not found for client_id: #{current.client_id}")
+          Logger.warning("order callback not found for client_id: #{current.client_id}")
         end
     end
   end

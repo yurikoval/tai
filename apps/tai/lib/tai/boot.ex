@@ -1,6 +1,5 @@
 defmodule Tai.Boot do
   use GenServer
-  require Logger
 
   defmodule State do
     @enforce_keys ~w[config venues venue_replies]a
