@@ -6,7 +6,6 @@ defmodule TaiEvents.MixProject do
       app: :tai_events,
       version: "0.0.2",
       build_path: "../../_build",
-      config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixir: "~> 1.20.0",
@@ -28,6 +27,7 @@ defmodule TaiEvents.MixProject do
   defp deps do
     [
       {:jason, "~> 1.1"},
+      {:decimal, "~> 2.0", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end

@@ -17,8 +17,13 @@ defmodule TaiMonorepo.MixProject do
           "_build/dev/lib/tai/ebin",
           "_build/dev/lib/examples/ebin"
         ]
-      ],
-      preferred_cli_env: [
+      ]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
