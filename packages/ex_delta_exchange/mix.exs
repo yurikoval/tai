@@ -1,0 +1,50 @@
+defmodule ExDeltaExchange.MixProject do
+  use Mix.Project
+
+  def project do
+    [
+      app: :ex_delta_exchange,
+      version: "0.0.3",
+      elixir: "~> 1.10",
+      start_permanent: Mix.env() == :prod,
+      package: package(),
+      start_permanent: Mix.env() == :prod,
+      description: description(),
+      deps: deps(),
+    ]
+  end
+
+  def application do
+    [
+      extra_applications: [:logger]
+    ]
+  end
+
+  defp deps do
+    [
+      {:proper_case, "~> 1.0"},
+      {:httpoison, "~> 1.0"},
+      {:jason, "~> 1.1"},
+      {:mapail, "~> 1.0.2"},
+      {:timex, "~> 3.5"},
+      {:ex_doc, ">= 0.0.0", only: :dev},
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
+      {:mix_test_watch, "~> 1.0", only: :dev, runtime: false},
+      {:exvcr, "~> 0.10", only: [:dev, :test]},
+      {:ex_unit_notifier, "~> 1.0", only: :test},
+      {:excoveralls, "~> 0.10", only: :test},
+    ]
+  end
+
+  defp description do
+    "Delta Exchange API Client for Elixir"
+  end
+
+  defp package do
+    %{
+      licenses: ["MIT"],
+      maintainers: ["Alex Kwiatkowski"],
+      links: %{"GitHub" => "https://github.com/fremantle-industries/ex_delta_exchange"}
+    }
+  end
+end
