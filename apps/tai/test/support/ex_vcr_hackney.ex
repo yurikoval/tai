@@ -1,4 +1,6 @@
 defmodule Tai.Test.ExVCRHackney do
+  @moduledoc false
+
   use ExVCR.Adapter
 
   defmacro __using__(_opts) do

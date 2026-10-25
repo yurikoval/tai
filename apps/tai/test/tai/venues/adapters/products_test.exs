@@ -49,7 +49,7 @@ defmodule Tai.Venues.Adapters.ProductsTest do
           min_size: Decimal.new("0.0001"),
           min_price: Decimal.new("0.01"),
           size_increment: Decimal.new("0.001"),
-          price_increment: Decimal.new("0.01"),
+          price_increment: Decimal.new("0.01")
         },
         %{
           symbol: :ltc_usd,
@@ -58,7 +58,7 @@ defmodule Tai.Venues.Adapters.ProductsTest do
           min_size: Decimal.new("0.0001"),
           min_price: Decimal.new("0.01"),
           size_increment: Decimal.new("0.001"),
-          price_increment: Decimal.new("0.01"),
+          price_increment: Decimal.new("0.01")
         }
       ]
     )

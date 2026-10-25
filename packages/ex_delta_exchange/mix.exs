@@ -10,7 +10,7 @@ defmodule ExDeltaExchange.MixProject do
       package: package(),
       start_permanent: Mix.env() == :prod,
       description: description(),
-      deps: deps(),
+      deps: deps()
     ]
   end
 
@@ -32,7 +32,7 @@ defmodule ExDeltaExchange.MixProject do
       {:mix_test_watch, "~> 1.0", only: :dev, runtime: false},
       {:exvcr, "~> 0.10", only: [:dev, :test]},
       {:ex_unit_notifier, "~> 1.0", only: :test},
-      {:excoveralls, "~> 0.10", only: :test},
+      {:excoveralls, "~> 0.10", only: :test}
     ]
   end
 
