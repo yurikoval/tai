@@ -1,6 +1,7 @@
 defmodule Tai.Venues.Adapters.CreateOrderErrorTest do
   use Tai.TestSupport.DataCase, async: false
-  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
+  use ExVCR.Mock, adapter: Tai.Test.ExVCRHackney
+
   setup_all do
     HTTPoison.start()
   end

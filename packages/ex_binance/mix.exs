@@ -5,7 +5,7 @@ defmodule ExBinance.MixProject do
     [
       app: :ex_binance,
       version: "0.0.10",
-      elixir: "~> 1.11",
+      elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       description: description(),
       package: package(),
@@ -26,10 +26,10 @@ defmodule ExBinance.MixProject do
 
   defp deps do
     [
-      {:httpoison, "~> 1.0"},
+      {:httpoison, "~> 3.0", override: true},
       {:jason, "~> 1.1"},
       {:exconstructor, "~> 1.1"},
-      {:hackney, "~> 1.17"},
+      {:hackney, "~> 4.8"},
       {:ex_doc, ">= 0.0.0", only: :dev},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:mix_test_watch, "~> 1.0", only: :dev, runtime: false},

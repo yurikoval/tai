@@ -1,6 +1,6 @@
 defmodule Tai.Venues.Adapters.PositionsTest do
   use ExUnit.Case, async: false
-  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
+  use ExVCR.Mock, adapter: Tai.Test.ExVCRHackney
 
   setup_all do
     start_supervised!(Tai.TestSupport.Mocks.Server)

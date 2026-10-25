@@ -5,7 +5,7 @@ defmodule ExBybit.MixProject do
     [
       app: :ex_bybit,
       version: "0.0.1",
-      elixir: "~> 1.11",
+      elixir: "~> 1.17",
       package: package(),
       start_permanent: Mix.env() == :prod,
       description: description(),
@@ -21,7 +21,7 @@ defmodule ExBybit.MixProject do
 
   defp deps do
     [
-      {:httpoison, "~> 1.0"},
+      {:httpoison, "~> 3.0", override: true},
       {:jason, "~> 1.1"},
       {:mapail, "~> 1.0"},
       {:websockex, "~> 0.4"},

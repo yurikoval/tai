@@ -5,7 +5,7 @@ defmodule ExGdax.Mixfile do
     [
       app: :ex_gdax,
       version: "0.2.0",
-      elixir: "~> 1.10",
+      elixir: "~> 1.17",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -23,7 +23,7 @@ defmodule ExGdax.Mixfile do
 
   defp deps do
     [
-      {:httpoison, "~> 1.0"},
+      {:httpoison, "~> 3.0"},
       {:poison, "~> 4.0"},
       {:mock, "~> 0.3", only: :test},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},

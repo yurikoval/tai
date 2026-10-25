@@ -5,7 +5,7 @@ defmodule ExDeribit.MixProject do
     [
       app: :ex_deribit,
       version: "0.0.9",
-      elixir: "~> 1.10",
+      elixir: "~> 1.17",
       package: package(),
       start_permanent: Mix.env() == :prod,
       description: description(),
@@ -32,7 +32,7 @@ defmodule ExDeribit.MixProject do
 
   defp deps do
     [
-      {:httpoison, "~> 1.0"},
+      {:httpoison, "~> 3.0", override: true},
       {:jason, "~> 1.1"},
       {:mapail, "~> 1.0.2"},
       {:timex, "~> 3.5"},

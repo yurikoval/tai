@@ -19,8 +19,8 @@ end
 
 ## Requirements
 
-- Erlang 22+
-- Elixir 1.11+
+- Erlang/OTP 25+
+- Elixir 1.17+
 
 ## API Documentation
 
