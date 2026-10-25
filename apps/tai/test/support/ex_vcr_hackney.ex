@@ -13,12 +13,20 @@ defmodule Tai.Test.ExVCRHackney do
   defdelegate generate_keys_for_request(request), to: ExVCR.Adapter.Hackney
   defdelegate get_response_value_from_cache(response), to: ExVCR.Adapter.Hackney
   defdelegate convert_from_string(string), to: ExVCR.Adapter.Hackney
-  defdelegate convert_to_string(request, response), to: ExVCR.Adapter.Hackney
+
+  def convert_to_string(request, {:ok, status, headers, body}) when is_binary(body) do
+    response = {:ok, status, headers, ExVCR.Filter.filter_sensitive_data(body)}
+    ExVCR.Adapter.Hackney.convert_to_string(request, response)
+  end
+
+  def convert_to_string(request, response) do
+    ExVCR.Adapter.Hackney.convert_to_string(request, response)
+  end
+
   defdelegate default_stub_params(name), to: ExVCR.Adapter.Hackney
 
   def hook_response_from_server({:ok, status, headers, body}) do
     headers = ExVCR.Filter.remove_blacklisted_headers(headers)
-    body = ExVCR.Filter.filter_sensitive_data(body)
     {:ok, status, headers, body}
   end
 

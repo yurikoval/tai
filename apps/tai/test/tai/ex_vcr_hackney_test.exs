@@ -1,14 +1,17 @@
 defmodule Tai.Test.ExVCRHackneyTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
-  test "supports recording Hackney 4 responses without exposing filtered data" do
+  test "filters recorded Hackney 4 responses without changing the live response" do
     previous_filters = ExVCR.Setting.get(:filter_sensitive_data)
     ExVCR.Setting.set(:filter_sensitive_data, [{"secret", "[FILTERED]"}])
     on_exit(fn -> ExVCR.Setting.set(:filter_sensitive_data, previous_filters) end)
 
-    assert function_exported?(Tai.Test.ExVCRHackney, :convert_to_string, 2)
+    request = [:get, "https://example.test", [], "", []]
+    response = {:ok, 200, [], "secret"}
 
-    assert {:ok, 200, [], "[FILTERED]"} =
-             Tai.Test.ExVCRHackney.hook_response_from_server({:ok, 200, [], "secret"})
+    assert ^response = live_response = Tai.Test.ExVCRHackney.hook_response_from_server(response)
+
+    assert %{response: %ExVCR.Response{body: "[FILTERED]"}} =
+             Tai.Test.ExVCRHackney.convert_to_string(request, live_response)
   end
 end
