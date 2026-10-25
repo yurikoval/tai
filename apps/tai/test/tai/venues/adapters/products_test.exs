@@ -1,6 +1,6 @@
 defmodule Tai.Venues.Adapters.ProductsTest do
   use ExUnit.Case, async: false
-  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
+  use ExVCR.Mock, adapter: Tai.Test.ExVCRHackney
 
   setup_all do
     on_exit(fn ->

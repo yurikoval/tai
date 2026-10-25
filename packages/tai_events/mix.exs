@@ -27,7 +27,7 @@ defmodule TaiEvents.MixProject do
   defp deps do
     [
       {:jason, "~> 1.1"},
-      {:decimal, "~> 2.0", only: :test},
+      {:decimal, "~> 3.2", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end

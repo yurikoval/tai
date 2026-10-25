@@ -1,6 +1,6 @@
 defmodule Tai.Venues.Adapters.Binance.AccountsTest do
   use ExUnit.Case, async: false
-  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
+  use ExVCR.Mock, adapter: Tai.Test.ExVCRHackney
 
   @venue Tai.TestSupport.Helpers.test_venue_adapter(:binance)
 

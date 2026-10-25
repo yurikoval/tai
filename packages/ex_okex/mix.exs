@@ -23,7 +23,7 @@ defmodule ExOkex.Mixfile do
 
   defp deps do
     [
-      {:httpoison, "~> 1.0"},
+      {:httpoison, "~> 3.0"},
       {:jason, "~> 1.1"},
       {:websockex, "~> 0.4.0"},
       {:mapail, "~> 1.0"},

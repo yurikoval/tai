@@ -32,7 +32,7 @@ defmodule ExDeribit.MixProject do
 
   defp deps do
     [
-      {:httpoison, "~> 1.0"},
+      {:httpoison, "~> 3.0"},
       {:jason, "~> 1.1"},
       {:mapail, "~> 1.0.2"},
       {:timex, "~> 3.5"},

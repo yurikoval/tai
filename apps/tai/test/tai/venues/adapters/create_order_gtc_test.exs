@@ -1,6 +1,6 @@
 defmodule Tai.Venues.Adapters.CreateOrderGtcTest do
   use Tai.TestSupport.DataCase, async: false
-  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
+  use ExVCR.Mock, adapter: Tai.Test.ExVCRHackney
   alias Tai.Orders.Responses
 
   setup_all do
