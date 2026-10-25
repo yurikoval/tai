@@ -5,7 +5,7 @@ defmodule ExDeltaExchange.MixProject do
     [
       app: :ex_delta_exchange,
       version: "0.0.3",
-      elixir: "~> 1.10",
+      elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       package: package(),
       start_permanent: Mix.env() == :prod,
@@ -23,7 +23,7 @@ defmodule ExDeltaExchange.MixProject do
   defp deps do
     [
       {:proper_case, "~> 1.0"},
-      {:httpoison, "~> 3.0"},
+      {:httpoison, "~> 3.0", override: true},
       {:jason, "~> 1.1"},
       {:mapail, "~> 1.0.2"},
       {:timex, "~> 3.5"},

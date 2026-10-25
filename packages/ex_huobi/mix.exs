@@ -5,7 +5,7 @@ defmodule ExHuobi.MixProject do
     [
       app: :ex_huobi,
       version: "0.0.2",
-      elixir: "~> 1.7",
+      elixir: "~> 1.17",
       package: package(),
       start_permanent: Mix.env() == :prod,
       description: description(),
@@ -28,7 +28,7 @@ defmodule ExHuobi.MixProject do
 
   defp deps do
     [
-      {:httpoison, "~> 3.0"},
+      {:httpoison, "~> 3.0", override: true},
       {:jason, "~> 1.1"},
       {:mapail, "~> 1.0"},
       {:ex_doc, ">= 0.0.0", only: :dev},

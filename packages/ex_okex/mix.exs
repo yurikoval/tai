@@ -5,7 +5,7 @@ defmodule ExOkex.Mixfile do
     [
       app: :ex_okex,
       version: "0.6.0",
-      elixir: "~> 1.10",
+      elixir: "~> 1.17",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -23,7 +23,7 @@ defmodule ExOkex.Mixfile do
 
   defp deps do
     [
-      {:httpoison, "~> 3.0"},
+      {:httpoison, "~> 3.0", override: true},
       {:jason, "~> 1.1"},
       {:websockex, "~> 0.4.0"},
       {:mapail, "~> 1.0"},
