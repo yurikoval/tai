@@ -25,14 +25,7 @@ defmodule Tai.Test.ExVCRHackney do
 
   defdelegate default_stub_params(name), to: ExVCR.Adapter.Hackney
 
-  def hook_response_from_server({:ok, status, headers, body}) do
-    headers = ExVCR.Filter.remove_blacklisted_headers(headers)
-    {:ok, status, headers, body}
-  end
-
-  def hook_response_from_server(response) do
-    ExVCR.Adapter.Hackney.hook_response_from_server(response)
-  end
+  defdelegate hook_response_from_server(response), to: ExVCR.Adapter.Hackney
 
   # Hackney 4 returns response bodies directly instead of through hackney:body/1.
   def hook_response_from_cache(_request, response), do: response
