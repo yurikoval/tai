@@ -56,7 +56,6 @@ iex(3)> products
 | binance | eth_usdt |      ETHUSDT | trading |   spot |           |           |
 |    gdax |  ltc_usd |      LTC-USD | trading |   spot |           |           |
 | binance | ltc_usdt |      LTCUSDT | trading |   spot |           |           |
-|  bitmex |   xbtusd |       XBTUSD | trading | future |   -0.025% |    0.075% |
 +---------+----------+--------------+---------+--------+-----------+-----------+
 ```
 
@@ -117,7 +116,6 @@ iex(6)> orders
 +--------+------------+--------+------+-------+--------+-----+------------+----------------+---------------+--------+-----------+----------------+----------------+------------------+----------------------+----------------+--------------+
 |  Venue | Credential | Symbol | Side |  Type |  Price | Qty | Leaves Qty | Cumulative Qty | Time in Force | Status | Client ID | Venue Order ID |    Enqueued At | Last Received At | Last Venue Timestamp |     Updated At | Error Reason |
 +--------+------------+--------+------+-------+--------+-----+------------+----------------+---------------+--------+-----------+----------------+----------------+------------------+----------------------+----------------+--------------+
-| bitmex |       main | xbtusd |  buy | limit | 3622.5 |  15 |         15 |              0 |           gtc |   open | 78f616... |      fe7486... | 11 seconds ago |   11 seconds ago |       11 seconds ago | 11 seconds ago |              |
 +--------+------------+--------+------+-------+--------+-----+------------+----------------+---------------+--------+-----------+----------------+----------------+------------------+----------------------+----------------+--------------+
 ```
 
@@ -131,7 +129,6 @@ iex(7)> venues
 |      ID | Credentials |  Status | Channels | Quote Depth | Timeout | Start On Boot |
 +---------+-------------+---------+----------+-------------+---------+---------------+
 | binance |           - | running |        - |           1 |   10000 |          true |
-|  bitmex |           - | running |        - |           3 |   10000 |          true |
 |    gdax |           - | running |        - |           1 |   10000 |          true |
 +---------+-------------+---------+----------+-------------+---------+---------------+
 ```
@@ -141,7 +138,7 @@ iex(7)> venues
 Stops the given venue
 
 ```
-iex(8)> stop_venue :bitmex
+iex(8)> stop_venue :binance
 stopped successfully
 ```
 
@@ -150,7 +147,7 @@ stopped successfully
 Starts the given venue
 
 ```
-iex(9)> start_venue :bitmex
+iex(9)> start_venue :binance
 starting...
 ```
 
@@ -180,7 +177,6 @@ iex(11)> advisors where: [status: :unstarted], order: [:group_id]
 |             fill_or_kill_orders |  binance_btc_usdt | unstarted |   - |
 |                      log_spread |  binance_btc_usdt | unstarted |   - |
 |                      log_spread |      gdax_btc_usd | unstarted |   - |
-|                      log_spread |     bitmex_xbtusd | unstarted |   - |
 +---------------------------------+-------------------+-----------+-----+
 ```
 
@@ -190,7 +186,7 @@ Starts advisors with an optional filter
 
 ```
 iex(12)> start_advisors where: [status: :unstarted]
-Started advisors: 5 new, 0 already running
+Started advisors: 4 new, 0 already running
 ```
 
 ## stop_advisors
@@ -199,5 +195,5 @@ Stops advisors with an optional filter
 
 ```
 iex(13)> stop_advisors where: [status: :running]
-Stopped advisors: 5 new, 0 already stopped
+Stopped advisors: 4 new, 0 already stopped
 ```

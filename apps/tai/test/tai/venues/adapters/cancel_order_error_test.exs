@@ -200,12 +200,10 @@ defmodule Tai.Venues.Adapters.CancelOrderErrorTest do
     })
   end
 
-  defp venue_product_symbol("bitmex"), do: "XBTH19"
   defp venue_product_symbol("okex_futures"), do: "ETH-USD-190628"
   defp venue_product_symbol("okex_swap"), do: "ETH-USD-SWAP"
   defp venue_product_symbol(_), do: "LTC-BTC"
 
-  defp product_symbol("bitmex"), do: "xbth19"
   defp product_symbol("okex_futures"), do: "eth_usd_190628"
   defp product_symbol("okex_swap"), do: "eth_usd_swap"
   defp product_symbol(_), do: "ltc_btc"
@@ -214,12 +212,10 @@ defmodule Tai.Venues.Adapters.CancelOrderErrorTest do
   defp product_type("binance"), do: :spot
   defp product_type(_), do: :future
 
-  defp price("bitmex"), do: Decimal.new("100.5")
   defp price("okex_futures"), do: Decimal.new("100.5")
   defp price("okex_swap"), do: Decimal.new("100.5")
   defp price("binance"), do: Decimal.new("0.007")
 
-  defp qty("bitmex"), do: Decimal.new(1)
   defp qty("okex_futures"), do: Decimal.new(1)
   defp qty("okex_swap"), do: Decimal.new(1)
   defp qty("binance"), do: Decimal.new(1)

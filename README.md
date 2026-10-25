@@ -21,7 +21,6 @@ Here's an example of an advisor that logs the spread between multiple products o
 | Venues | Live Order Book | Accounts | Orders | Products | Fees |
 | ------ | :-------------: | :------: | :----: | :------: | :--: |
 | OkEx                   |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
-| BitMEX                 |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
 | Binance Spot           |       [x]       |   [x]    |  [x]   |   [x]    | [x]  |
 | Binance USD-M Futures  |       [x]       |   [x]    |  [x]   |   [x]    | [ ]  |
 | Binance COIN-M Futures |       [x]       |   [x]    |  [x]   |   [x]    | [ ]  |

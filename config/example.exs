@@ -13,12 +13,12 @@ config :tai,
     ping_pong: %{
       advisor: Examples.PingPong.Advisor,
       factory: Tai.Advisors.Factories.OnePerProduct,
-      market_streams: "bitmex.xbtusd",
+      market_streams: "binance.btc_usdt",
       config:
         {Examples.PingPong.Config,
          %{
-           product: {{:bitmex, :xbtusd}, :product},
-           fee: {{:bitmex, :xbtusd, :main}, :fee},
+           product: {{:binance, :btc_usdt}, :product},
+           fee: {{:binance, :btc_usdt, :main}, :fee},
            max_qty: {5, :decimal}
          }}
     }
@@ -26,22 +26,6 @@ config :tai,
 
 config :tai,
   venues: %{
-    bitmex: [
-      start_on_boot: true,
-      adapter: Tai.VenueAdapters.Bitmex,
-      products: "xbtusd",
-      quote_depth: 3,
-      credentials: %{
-        main: %{
-          api_key: {:system_file, "BITMEX_API_KEY"},
-          api_secret: {:system_file, "BITMEX_API_SECRET"}
-        }
-      },
-      broadcast_change_set: true,
-      opts: %{
-        autocancel: %{ping_interval_ms: 15_000, cancel_after_ms: 60_000}
-      }
-    ],
     okex: [
       start_on_boot: true,
       adapter: Tai.VenueAdapters.OkEx,
