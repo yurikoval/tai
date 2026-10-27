@@ -28,14 +28,17 @@ defmodule Tai.Venues.Instances do
 
   @spec stop(venue) :: :ok | {:error, :already_stopped}
   def stop(venue) do
-    with {:ok, stream_pid} <- find_stream(venue),
-         {:ok, start_pid} <- find(venue) do
-      :ok = Tai.Venues.StreamsSupervisor.stop(stream_pid)
-      :ok = Tai.Venues.Supervisor.stop(start_pid)
-      :ok
-    else
-      {:error, :not_found} ->
-        {:error, :already_stopped}
-    end
+    stream_result = stop_stream(venue)
+    start_result = stop_start(venue)
+
+    if :ok in [stream_result, start_result], do: :ok, else: {:error, :already_stopped}
+  end
+
+  defp stop_stream(venue) do
+    with {:ok, pid} <- find_stream(venue), do: Tai.Venues.StreamsSupervisor.stop(pid)
+  end
+
+  defp stop_start(venue) do
+    with {:ok, pid} <- find(venue), do: Tai.Venues.Supervisor.stop(pid)
   end
 end

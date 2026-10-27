@@ -55,7 +55,22 @@ defmodule Tai.Venues.InstancesTest do
       assert Process.alive?(stream_pid) == false
     end
 
-    test "returns an error when the stream or start venue process can't be found" do
+    test "stops a venue start process without a stream" do
+      assert {:ok, start_pid} =
+               DynamicSupervisor.start_child(Tai.Venues.Supervisor, {MockStart, @venue})
+
+      assert Tai.Venues.Instances.stop(@venue) == :ok
+      refute Process.alive?(start_pid)
+    end
+
+    test "stops a stream without a venue start process" do
+      assert {:ok, stream_pid} = Tai.Venues.StreamsSupervisor.start(@stream)
+
+      assert Tai.Venues.Instances.stop(@venue) == :ok
+      refute Process.alive?(stream_pid)
+    end
+
+    test "returns an error when no venue processes can be found" do
       assert Tai.Venues.Instances.stop(@venue) == {:error, :already_stopped}
     end
   end
