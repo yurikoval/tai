@@ -46,7 +46,7 @@ defmodule ExGdax.Api do
   end
 
   defp headers(method, path, body, config) do
-    timestamp = :os.system_time(:seconds)
+    timestamp = :os.system_time(:seconds) |> Integer.to_string()
 
     [
       "Content-Type": "application/json",
