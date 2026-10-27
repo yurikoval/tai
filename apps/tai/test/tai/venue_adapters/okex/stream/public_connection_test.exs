@@ -86,6 +86,29 @@ defmodule Tai.VenueAdapters.OkEx.Stream.PublicConnectionTest do
     assert_receive {:"$gen_cast", {^envelope, 123}}
   end
 
+  test ".on_msg/3 routes books subscription acknowledgements to the optional-channel route", %{
+    state: state
+  } do
+    parent = self()
+
+    optional_channels =
+      spawn(fn ->
+        receive do
+          message -> send(parent, {:optional_channels, message})
+        end
+      end)
+
+    state = put_in(state.routes.optional_channels, optional_channels)
+
+    acknowledgement = %{
+      "event" => "subscribe",
+      "arg" => %{"channel" => "books", "instId" => "BTC-USDT"}
+    }
+
+    assert {:ok, ^state} = PublicConnection.on_msg(acknowledgement, 456, state)
+    assert_receive {:optional_channels, {:"$gen_cast", {^acknowledgement, 456}}}
+  end
+
   test ".on_msg/3 routes trades envelopes to the optional-channel route", %{state: state} do
     envelope = %{
       "arg" => %{"channel" => "trades", "instId" => "BTC-USDT"},

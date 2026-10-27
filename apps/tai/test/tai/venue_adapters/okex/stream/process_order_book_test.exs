@@ -83,7 +83,53 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
     assert Enum.empty?(quote.asks)
   end
 
+  test "rejects updates before a synchronized snapshot", %{pid: pid} do
+    register_connection()
+
+    GenServer.cast(pid, {:update, update(%{"prevSeqId" => nil}), Timex.now()})
+
+    assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+    refute_receive %Quote{}
+    assert %{sequence_id: nil} = :sys.get_state(pid)
+  end
+
+  test "rejects non-integer previous sequence ids", %{pid: pid} do
+    register_connection()
+
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+    assert_receive %Quote{}
+
+    GenServer.cast(pid, {:update, update(%{"prevSeqId" => "10"}), Timex.now()})
+
+    assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+    refute_receive %Quote{}
+    assert %{sequence_id: nil} = :sys.get_state(pid)
+  end
+
+  test "clears synchronization after an invalid snapshot", %{pid: pid} do
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+    assert_receive %Quote{}
+    assert %{sequence_id: 10} = :sys.get_state(pid)
+
+    GenServer.cast(pid, {:snapshot, snapshot(%{"ts" => "invalid"}), Timex.now()})
+
+    refute_receive %Quote{}
+    assert %{sequence_id: nil} = :sys.get_state(pid)
+  end
+
   test "reconnects instead of applying an update after a sequence gap", %{pid: pid} do
+    register_connection()
+
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+    assert_receive %Quote{}
+
+    GenServer.cast(pid, {:update, update(%{"prevSeqId" => 99}), Timex.now()})
+
+    assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+    refute_receive %Quote{}
+  end
+
+  defp register_connection do
     parent = self()
 
     connection =
@@ -94,14 +140,6 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
       end)
 
     Process.register(connection, PublicConnection.process_name(@product.venue_id))
-
-    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
-    assert_receive %Quote{}
-
-    GenServer.cast(pid, {:update, update(%{"prevSeqId" => 99}), Timex.now()})
-
-    assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
-    refute_receive %Quote{}
   end
 
   defp snapshot(overrides \\ %{}) do

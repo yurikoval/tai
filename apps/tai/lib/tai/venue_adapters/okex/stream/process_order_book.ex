@@ -40,15 +40,20 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
 
       {:error, reason} ->
         warn(reason, state)
-        {:noreply, state}
+        {:noreply, %{state | sequence_id: nil}}
     end
+  end
+
+  def handle_cast({:snapshot, _data, _received_at}, state) do
+    warn(:invalid_order_book_message, state)
+    {:noreply, %{state | sequence_id: nil}}
   end
 
   def handle_cast(
         {:update, %{"prevSeqId" => previous_id, "seqId" => sequence_id} = data, received_at},
         %{sequence_id: previous_id} = state
       )
-      when is_integer(sequence_id) do
+      when is_integer(previous_id) and is_integer(sequence_id) do
     case build_change_set(data, received_at, state) do
       {:ok, change_set} ->
         OrderBook.apply(change_set)

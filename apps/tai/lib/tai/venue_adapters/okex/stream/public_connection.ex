@@ -71,7 +71,12 @@ defmodule Tai.VenueAdapters.OkEx.Stream.PublicConnection do
   end
 
   @impl true
-  def on_msg(%{"arg" => %{"channel" => "books"}} = msg, received_at, state) do
+  def on_msg(
+        %{"action" => action, "arg" => %{"channel" => "books"}} = msg,
+        received_at,
+        state
+      )
+      when action in ["snapshot", "update"] do
     forward(msg, :markets, received_at, state)
     {:ok, state}
   end
