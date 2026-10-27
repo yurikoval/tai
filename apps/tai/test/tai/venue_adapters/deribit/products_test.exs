@@ -37,6 +37,15 @@ defmodule Tai.VenueAdapters.Deribit.ProductsTest do
         expiration_timestamp: 1_601_020_800_000
       }),
       instrument(%{
+        instrument_name: "BTC-25SEP20-1.2.3-C",
+        quote_currency: "BTC",
+        kind: "option",
+        option_type: "call",
+        strike: 1.2,
+        contract_size: 1,
+        expiration_timestamp: 1_601_020_800_000
+      }),
+      instrument(%{
         instrument_name: "AAVE_USDC",
         base_currency: "AAVE",
         quote_currency: "USDC",
@@ -61,6 +70,7 @@ defmodule Tai.VenueAdapters.Deribit.ProductsTest do
         end
       end)
 
+    assert log =~ "Deribit ignored instrument \"BTC-25SEP20-1.2.3-C\""
     assert log =~ "Deribit ignored instrument \"AAVE_USDC\""
     assert log =~ "Deribit ignored instrument nil"
   end

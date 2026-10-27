@@ -6,7 +6,7 @@ defmodule Tai.VenueAdapters.Deribit.Product do
           |> Map.new()
   @perpetual_name ~r/^(BTC|ETH)-PERPETUAL$/
   @future_name ~r/^(BTC|ETH)-(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})$/
-  @option_name ~r/^(BTC|ETH)-(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})-([\d.]+)-([CP])$/
+  @option_name ~r/^(BTC|ETH)-(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})-(\d+(?:\.\d+)?)-([CP])$/
 
   @spec build(ExDeribit.Instrument.t(), Tai.Venue.id()) ::
           {:ok, Tai.Venues.Product.t()} | {:error, term}
@@ -187,15 +187,12 @@ defmodule Tai.VenueAdapters.Deribit.Product do
   end
 
   defp option_symbol_details(name) do
-    case Regex.run(@option_name, name, capture: :all_but_first) do
-      [_currency, _day, _month, _year, strike, "C"] ->
-        {:ok, :call, Decimal.new(strike)}
-
-      [_currency, _day, _month, _year, strike, "P"] ->
-        {:ok, :put, Decimal.new(strike)}
-
-      _ ->
-        {:error, {:invalid_instrument, {:instrument_name, name}}}
+    with [_currency, _day, _month, _year, strike, suffix] <-
+           Regex.run(@option_name, name, capture: :all_but_first),
+         {:ok, strike} <- positive_decimal(:strike, strike) do
+      {:ok, if(suffix == "C", do: :call, else: :put), strike}
+    else
+      _ -> {:error, {:invalid_instrument, {:instrument_name, name}}}
     end
   end
 

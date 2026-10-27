@@ -76,6 +76,15 @@ defmodule Tai.VenuesAdapters.Deribit.ProductTest do
     end
 
     test "rejects malformed option metadata" do
+      assert {:error, {:invalid_instrument, {:instrument_name, "BTC-25SEP20-1.2.3-C"}}} =
+               build(%{
+                 kind: "option",
+                 instrument_name: "BTC-25SEP20-1.2.3-C",
+                 quote_currency: "BTC",
+                 option_type: "call",
+                 strike: 1.2
+               })
+
       assert {:error, {:invalid_instrument, {:option_type, "binary"}}} =
                build(%{
                  kind: "option",
