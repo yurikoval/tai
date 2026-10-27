@@ -29,7 +29,7 @@ Here's an example of an advisor that logs the spread between multiple products o
 
 | Venue             | Live Order Book | Accounts | Orders | Products | Fees |
 | ----------------- | :-------------: | :------: | :----: | :------: | :--: |
-| Deribit (BTC/ETH inverse futures/perpetuals) | [x] | [x] | [ ] | [x] | [x] |
+| Deribit (BTC/ETH inverse futures, perpetuals, and vanilla options) | [x] | [x] | [ ] | [x] | [x] |
 | GDAX              |       [x]       |   [x]    |   [ ]  |   [x]    | [x]  |
 | Huobi             |       [x]       |   [ ]    |   [ ]  |   [x]    | [ ]  |
 | Delta Exchange    |       [x]       |   [ ]    |   [ ]  |   [x]    | [x]  |
