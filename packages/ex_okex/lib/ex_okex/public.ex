@@ -42,16 +42,15 @@ defmodule ExOkex.Public do
     do: {:error, {:invalid_instrument_type, instrument_type}}
 
   defp parse_response({:ok, %{"code" => "0", "data" => data}}) when is_list(data) do
-    Enum.reduce_while(data, {:ok, []}, fn attrs, {:ok, instruments} ->
-      case Instrument.new(attrs) do
-        {:ok, instrument} -> {:cont, {:ok, [instrument | instruments]}}
-        {:error, _} = error -> {:halt, error}
-      end
-    end)
-    |> case do
-      {:ok, instruments} -> {:ok, Enum.reverse(instruments)}
-      {:error, _} = error -> error
-    end
+    instruments =
+      Enum.reduce(data, [], fn attrs, instruments ->
+        case Instrument.new(attrs) do
+          {:ok, instrument} -> [instrument | instruments]
+          {:error, _} -> instruments
+        end
+      end)
+
+    {:ok, Enum.reverse(instruments)}
   end
 
   defp parse_response({:ok, %{"code" => code, "msg" => message}}),

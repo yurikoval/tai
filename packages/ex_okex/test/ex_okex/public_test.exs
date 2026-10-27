@@ -89,11 +89,12 @@ defmodule ExOkex.PublicTest do
     end
   end
 
-  test "rejects malformed instruments" do
+  test "omits malformed instruments without dropping valid instruments" do
+    invalid = %{"instId" => "MPWR-USDT-SWAP"}
+
     with_mock ExOkex.Api.Public,
-      get: fn _, _, _ -> {:ok, %{"code" => "0", "data" => [%{"instId" => "BTC-USDT"}]}} end do
-      assert Public.instruments("SPOT") ==
-               {:error, {:invalid_instrument, %{"instId" => "BTC-USDT"}}}
+      get: fn _, _, _ -> {:ok, %{"code" => "0", "data" => [invalid, @instrument]}} end do
+      assert {:ok, [%Instrument{instrument_id: "BTC-USDT"}]} = Public.instruments("SPOT")
     end
   end
 
