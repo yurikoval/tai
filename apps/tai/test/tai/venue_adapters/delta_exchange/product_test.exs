@@ -9,6 +9,7 @@ defmodule Tai.VenueAdapters.DeltaExchange.ProductTest do
     product = VenueAdapters.DeltaExchange.Product.build(venue_product, @venue)
 
     assert product.type == :spot
+    assert product.payoff_type == nil
   end
 
   test ".build/2 can parse futures products" do
@@ -23,30 +24,54 @@ defmodule Tai.VenueAdapters.DeltaExchange.ProductTest do
     perp_product = VenueAdapters.DeltaExchange.Product.build(perp_venue_product, @venue)
     assert perp_product.type == :swap
 
-    ir_venue_product = build_venue_product(symbol: "IRS-DE-BTCUSD-311221", contract_type: "interest_rate_swaps")
+    ir_venue_product =
+      build_venue_product(symbol: "IRS-DE-BTCUSD-311221", contract_type: "interest_rate_swaps")
+
     ir_product = VenueAdapters.DeltaExchange.Product.build(ir_venue_product, @venue)
     assert ir_product.type == :swap
 
-    spreads_venue_product = build_venue_product(symbol: "CS-BTCUSD-Mar-Dec", contract_type: "spreads")
+    spreads_venue_product =
+      build_venue_product(symbol: "CS-BTCUSD-Mar-Dec", contract_type: "spreads")
+
     spreads_product = VenueAdapters.DeltaExchange.Product.build(spreads_venue_product, @venue)
     assert spreads_product.type == :swap
   end
 
   test ".build/2 can parse options products" do
-    call_venue_product = build_venue_product(symbol: "C-BTC-64000-181121", contract_type: "call_options")
-    call_product = VenueAdapters.DeltaExchange.Product.build(call_venue_product, @venue)
-    assert call_product.type == :option
+    for {symbol, contract_type} <- [
+          {"C-BTC-64000-181121", "call_options"},
+          {"P-BTC-64000-181121", "put_options"}
+        ] do
+      venue_product = build_venue_product(symbol: symbol, contract_type: contract_type)
+      product = VenueAdapters.DeltaExchange.Product.build(venue_product, @venue)
 
-    put_venue_product = build_venue_product(symbol: "P-BTC-64000-181121", contract_type: "put_options")
-    put_product = VenueAdapters.DeltaExchange.Product.build(put_venue_product, @venue)
-    assert put_product.type == :option
+      assert product.type == :option
+      assert product.payoff_type == :vanilla
+    end
+
+    for {symbol, contract_type} <- [
+          {"B-C-ETH-2310-2710260945", "binary_call_options"},
+          {"B-P-ETH-2310-2710260945", "binary_put_options"}
+        ] do
+      venue_product = build_venue_product(symbol: symbol, contract_type: contract_type)
+      product = VenueAdapters.DeltaExchange.Product.build(venue_product, @venue)
+
+      assert product.type == :option
+      assert product.payoff_type == :binary
+    end
   end
 
-  test ".build/2 can parse move products" do
-    venue_product = build_venue_product(symbol: "MV-BTC-60400-181121")
-    product = VenueAdapters.DeltaExchange.Product.build(venue_product, @venue)
+  test ".build/2 can parse move options" do
+    for {symbol, contract_type} <- [
+          {"MOVE-BTC-60400-181121", "move_options"},
+          {"MV-BTC-60400-181121", "unknown"}
+        ] do
+      venue_product = build_venue_product(symbol: symbol, contract_type: contract_type)
+      product = VenueAdapters.DeltaExchange.Product.build(venue_product, @venue)
 
-    assert product.type == :move
+      assert product.type == :option
+      assert product.payoff_type == :move
+    end
   end
 
   @quoting_asset struct(ExDeltaExchange.Product.Asset, symbol: "USDT")

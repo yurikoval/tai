@@ -6,6 +6,7 @@ defmodule Tai.VenueAdapters.Deribit.Product do
           |> Map.new()
   @perpetual_name ~r/^(BTC|ETH)-PERPETUAL$/
   @future_name ~r/^(BTC|ETH)-(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})$/
+  @option_name ~r/^(BTC|ETH)-(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})-(\d+(?:\.\d+)?)-([CP])$/
 
   @spec build(ExDeribit.Instrument.t(), Tai.Venue.id()) ::
           {:ok, Tai.Venues.Product.t()} | {:error, term}
@@ -15,6 +16,7 @@ defmodule Tai.VenueAdapters.Deribit.Product do
          :ok <- validate_string(:quote_currency, instrument.quote_currency),
          {:ok, status} <- to_status(instrument.is_active, instrument.state),
          {:ok, type, expiry} <- type_and_expiry(instrument),
+         {:ok, payoff_type, option_type, strike} <- option_details(instrument),
          {:ok, listing} <- timestamp(:creation_timestamp, instrument.creation_timestamp),
          {:ok, min_trade_amount} <-
            positive_decimal(:min_trade_amount, instrument.min_trade_amount),
@@ -41,13 +43,14 @@ defmodule Tai.VenueAdapters.Deribit.Product do
          min_price: tick_size,
          min_size: min_trade_amount,
          value: contract_size,
-         value_side: :quote,
+         value_side: value_side(instrument.kind),
          is_quanto: false,
          is_inverse: true,
          maker_fee: maker_fee,
          taker_fee: taker_fee,
-         option_type: nil,
-         strike: nil
+         payoff_type: payoff_type,
+         option_type: option_type,
+         strike: strike
        }}
     end
   end
@@ -66,14 +69,26 @@ defmodule Tai.VenueAdapters.Deribit.Product do
     |> String.upcase()
   end
 
-  defp validate_contract(%ExDeribit.Instrument{kind: kind}) when kind != "future" do
+  defp validate_contract(%ExDeribit.Instrument{kind: kind})
+       when kind not in ["future", "option"] do
     {:error, {:unsupported_instrument, {:kind, kind}}}
   end
 
   defp validate_contract(%ExDeribit.Instrument{
+         kind: "future",
          instrument_type: "reversed",
          base_currency: base,
          quote_currency: "USD",
+         settlement_currency: base
+       })
+       when base in @inverse_currencies,
+       do: :ok
+
+  defp validate_contract(%ExDeribit.Instrument{
+         kind: "option",
+         instrument_type: "reversed",
+         base_currency: base,
+         quote_currency: base,
          settlement_currency: base
        })
        when base in @inverse_currencies,
@@ -100,27 +115,40 @@ defmodule Tai.VenueAdapters.Deribit.Product do
 
   defp to_status(_active, state), do: {:error, {:invalid_instrument, {:state, state}}}
 
-  defp type_and_expiry(%ExDeribit.Instrument{
-         instrument_name: name,
-         base_currency: base,
-         expiration_timestamp: expiration_timestamp
-       })
+  defp type_and_expiry(%ExDeribit.Instrument{kind: "future"} = instrument),
+    do: future_expiry(instrument)
+
+  defp type_and_expiry(%ExDeribit.Instrument{kind: "option"} = instrument) do
+    with {:ok, expiry} <- dated_expiry(instrument, @option_name), do: {:ok, :option, expiry}
+  end
+
+  defp future_expiry(
+         %ExDeribit.Instrument{instrument_name: name, base_currency: base} = instrument
+       )
        when is_binary(name) and is_binary(base) do
     case Regex.run(@perpetual_name, name, capture: :all_but_first) do
       [currency] when currency == base ->
         {:ok, :swap, nil}
 
       _ ->
-        dated_future(name, base, expiration_timestamp)
+        with {:ok, expiry} <- dated_expiry(instrument, @future_name), do: {:ok, :future, expiry}
     end
   end
 
-  defp type_and_expiry(%ExDeribit.Instrument{instrument_name: name}) do
-    {:error, {:invalid_instrument, {:instrument_name, name}}}
-  end
+  defp future_expiry(%ExDeribit.Instrument{instrument_name: name}),
+    do: {:error, {:invalid_instrument, {:instrument_name, name}}}
 
-  defp dated_future(name, base, expiration_timestamp) do
-    with [currency, day, month, year] <- Regex.run(@future_name, name, capture: :all_but_first),
+  defp dated_expiry(
+         %ExDeribit.Instrument{
+           instrument_name: name,
+           base_currency: base,
+           expiration_timestamp: expiration_timestamp
+         },
+         regex
+       )
+       when is_binary(name) and is_binary(base) do
+    with [currency, day, month, year | _details] <-
+           Regex.run(regex, name, capture: :all_but_first),
          true <- currency == base,
          {day, ""} <- Integer.parse(day),
          {year, ""} <- Integer.parse(year),
@@ -129,7 +157,7 @@ defmodule Tai.VenueAdapters.Deribit.Product do
 
       with {:ok, expiry} <- timestamp(:expiration_timestamp, expiration_timestamp),
            :eq <- DateTime.compare(expiry, expected_expiry) do
-        {:ok, :future, expiry}
+        {:ok, expiry}
       else
         {:error, _reason} = error -> error
         _ -> {:error, {:invalid_instrument, {:expiration_timestamp, expiration_timestamp}}}
@@ -138,6 +166,53 @@ defmodule Tai.VenueAdapters.Deribit.Product do
       _ -> {:error, {:invalid_instrument, {:instrument_name, name}}}
     end
   end
+
+  defp dated_expiry(%ExDeribit.Instrument{instrument_name: name}, _regex),
+    do: {:error, {:invalid_instrument, {:instrument_name, name}}}
+
+  defp option_details(%ExDeribit.Instrument{kind: "future"}), do: {:ok, nil, nil, nil}
+
+  defp option_details(%ExDeribit.Instrument{
+         instrument_name: name,
+         option_type: option_type,
+         strike: strike
+       }) do
+    with {:ok, symbol_option_type, symbol_strike} <- option_symbol_details(name),
+         {:ok, parsed_option_type} <- option_type(option_type),
+         :ok <- validate_option_type(parsed_option_type, symbol_option_type, option_type),
+         {:ok, parsed_strike} <- positive_decimal(:strike, strike),
+         :ok <- validate_strike(parsed_strike, symbol_strike, strike) do
+      {:ok, :vanilla, parsed_option_type, parsed_strike}
+    end
+  end
+
+  defp option_symbol_details(name) do
+    with [_currency, _day, _month, _year, strike, suffix] <-
+           Regex.run(@option_name, name, capture: :all_but_first),
+         {:ok, strike} <- positive_decimal(:strike, strike) do
+      {:ok, if(suffix == "C", do: :call, else: :put), strike}
+    else
+      _ -> {:error, {:invalid_instrument, {:instrument_name, name}}}
+    end
+  end
+
+  defp option_type("call"), do: {:ok, :call}
+  defp option_type("put"), do: {:ok, :put}
+  defp option_type(value), do: {:error, {:invalid_instrument, {:option_type, value}}}
+
+  defp validate_option_type(value, value, _raw_value), do: :ok
+
+  defp validate_option_type(_value, _expected, raw_value),
+    do: {:error, {:invalid_instrument, {:option_type, raw_value}}}
+
+  defp validate_strike(value, expected, raw_value) do
+    if Decimal.equal?(value, expected),
+      do: :ok,
+      else: {:error, {:invalid_instrument, {:strike, raw_value}}}
+  end
+
+  defp value_side("future"), do: :quote
+  defp value_side("option"), do: :base
 
   defp timestamp(field, value) when is_integer(value) and value > 0 do
     case DateTime.from_unix(value, @time_unit) do

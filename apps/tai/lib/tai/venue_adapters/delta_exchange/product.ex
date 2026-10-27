@@ -3,6 +3,10 @@ defmodule Tai.VenueAdapters.DeltaExchange.Product do
   @type product :: Tai.Venues.Product.t()
   @type venue_product :: ExDeltaExchange.Product.t()
 
+  @vanilla_option_contract_types ~w[call_options put_options]
+  @binary_option_contract_types ~w[binary_call_options binary_put_options]
+  @option_contract_types @vanilla_option_contract_types ++ @binary_option_contract_types
+
   @spec build(venue_product, venue) :: product
   def build(%ExDeltaExchange.Product{} = venue_product, venue_id) do
     %Tai.Venues.Product{
@@ -16,6 +20,7 @@ defmodule Tai.VenueAdapters.DeltaExchange.Product do
       venue_quote: venue_product.quoting_asset.symbol,
       status: venue_product |> status(),
       type: venue_product |> type(),
+      payoff_type: venue_product |> payoff_type(),
       collateral: false,
       price_increment: venue_product.tick_size |> Decimal.new(),
       size_increment: venue_product.tick_size |> Decimal.new(),
@@ -41,17 +46,32 @@ defmodule Tai.VenueAdapters.DeltaExchange.Product do
 
   defp type(venue_product) do
     cond do
-      venue_product.contract_type == "call_options" -> :option
-      venue_product.contract_type == "put_options" -> :option
+      venue_product.contract_type in @option_contract_types -> :option
       venue_product.contract_type == "futures" -> :future
       venue_product.contract_type == "perpetual_futures" -> :swap
       venue_product.contract_type == "interest_rate_swaps" -> :swap
       venue_product.contract_type == "spreads" -> :swap
       venue_product.contract_type == "spot" -> :spot
-      String.starts_with?(venue_product.symbol, "MV-") -> :move
+      move_option?(venue_product) -> :option
       true -> :unknown
     end
   end
+
+  defp payoff_type(%{contract_type: contract_type})
+       when contract_type in @vanilla_option_contract_types,
+       do: :vanilla
+
+  defp payoff_type(%{contract_type: contract_type})
+       when contract_type in @binary_option_contract_types,
+       do: :binary
+
+  defp payoff_type(venue_product) do
+    if move_option?(venue_product), do: :move, else: nil
+  end
+
+  defp move_option?(%{contract_type: "move_options"}), do: true
+  defp move_option?(%{symbol: "MV-" <> _symbol}), do: true
+  defp move_option?(_venue_product), do: false
 
   defp downcase_and_atom(str), do: str |> String.downcase() |> String.to_atom()
 end

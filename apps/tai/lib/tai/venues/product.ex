@@ -61,7 +61,8 @@ defmodule Tai.Venues.Product do
 
   @type symbol :: atom
   @type venue_symbol :: String.t()
-  @type type :: :spot | :future | :swap | :option | :leveraged_token | :bvol | :ibvol | :move
+  @type type :: :spot | :future | :swap | :option | :leveraged_token | :bvol | :ibvol
+  @type payoff_type :: :vanilla | :binary | :move
   @type t :: %Tai.Venues.Product{
           venue_id: Tai.Venue.id(),
           symbol: symbol,
@@ -91,7 +92,8 @@ defmodule Tai.Venues.Product do
           maker_fee: Decimal.t() | nil,
           taker_fee: Decimal.t() | nil,
           strike: Decimal.t() | nil,
-          option_type: :call | :put | nil
+          option_type: :call | :put | nil,
+          payoff_type: payoff_type | nil
         }
 
   @enforce_keys ~w[
@@ -144,5 +146,6 @@ defmodule Tai.Venues.Product do
     taker_fee
     strike
     option_type
+    payoff_type
   ]a
 end
