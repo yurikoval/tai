@@ -30,4 +30,6 @@ defmodule ExDeribit.Accounts.Positions do
       end
     )
   end
+
+  defp parse_response({:error, _reason} = error), do: error
 end

@@ -6,16 +6,26 @@ defmodule ExDeribit.MarketData.InstrumentsTest do
 
   alias ExDeribit.MarketData.Instruments
 
+  @valid_instrument %{
+    "instrument_name" => "BTC-PERPETUAL",
+    "base_currency" => "BTC",
+    "quote_currency" => "USD",
+    "settlement_currency" => "BTC",
+    "instrument_type" => "reversed",
+    "is_active" => true,
+    "state" => "open",
+    "kind" => "future",
+    "creation_timestamp" => 1_588_838_404_000,
+    "expiration_timestamp" => 4_133_404_800_000,
+    "min_trade_amount" => 10,
+    "tick_size" => 0.5,
+    "contract_size" => 10,
+    "maker_commission" => 0,
+    "taker_commission" => 0.0005
+  }
+
   test "accepts the complete catalogue query model" do
-    response = %ExDeribit.JsonRpcResponse{
-      result: [
-        %{
-          "instrument_name" => "BTC-PERPETUAL",
-          "kind" => "future",
-          "instrument_type" => "reversed"
-        }
-      ]
-    }
+    response = %ExDeribit.JsonRpcResponse{result: [@valid_instrument]}
 
     with_mock ExDeribit.HTTPClient,
       non_auth_get: fn "/public/get_instruments", params ->
@@ -52,9 +62,14 @@ defmodule ExDeribit.MarketData.InstrumentsTest do
     end
   end
 
-  test "ignores an individually malformed catalogue item" do
+  test "ignores incomplete and incorrectly typed catalogue items" do
     response = %ExDeribit.JsonRpcResponse{
-      result: [%{"instrument_name" => "BTC-PERPETUAL"}, "malformed"]
+      result: [
+        @valid_instrument,
+        %{"instrument_name" => "BTC-PERPETUAL"},
+        Map.put(@valid_instrument, "is_active", "true"),
+        "malformed"
+      ]
     }
 
     log =
@@ -69,5 +84,7 @@ defmodule ExDeribit.MarketData.InstrumentsTest do
       end)
 
     assert log =~ "Deribit ignored malformed instrument at index 1"
+    assert log =~ "Deribit ignored malformed instrument at index 2"
+    assert log =~ "Deribit ignored malformed instrument at index 3"
   end
 end

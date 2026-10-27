@@ -34,6 +34,10 @@ defmodule Tai.Venues.Adapters.ProductsTest do
         assert %Decimal{} = product.min_price
         assert %Decimal{} = product.size_increment
         assert %Decimal{} = product.price_increment
+
+        if @venue.id == :deribit do
+          assert product.expiry == nil
+        end
       end
     end
   end)

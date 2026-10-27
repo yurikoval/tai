@@ -29,4 +29,6 @@ defmodule ExDeribit.Accounts.Announcements do
       end
     )
   end
+
+  defp parse_response({:error, _reason} = error), do: error
 end

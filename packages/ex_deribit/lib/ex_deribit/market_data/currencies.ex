@@ -24,4 +24,6 @@ defmodule ExDeribit.MarketData.Currencies do
       end
     )
   end
+
+  defp parse_response({:error, _reason} = error), do: error
 end

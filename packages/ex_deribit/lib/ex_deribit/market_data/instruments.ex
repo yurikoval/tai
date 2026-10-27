@@ -14,6 +14,7 @@ defmodule ExDeribit.MarketData.Instruments do
 
   @path "/public/get_instruments"
   @kinds ~w(future option spot future_combo option_combo)a
+  @instrument_kinds Enum.map(@kinds, &Atom.to_string/1)
   @option_keys ~w(kind expired)a
 
   @spec get(currency) :: result
@@ -59,10 +60,10 @@ defmodule ExDeribit.MarketData.Instruments do
       |> Enum.with_index()
       |> Enum.reduce([], fn
         {item, index}, acc when is_map(item) ->
-          case Mapail.map_to_struct(item, ExDeribit.Instrument) do
-            {:ok, instrument} ->
-              [instrument | acc]
-
+          with {:ok, instrument} <- Mapail.map_to_struct(item, ExDeribit.Instrument),
+               true <- valid_instrument?(instrument) do
+            [instrument | acc]
+          else
             _error ->
               Logger.warning("Deribit ignored malformed instrument at index #{index}")
               acc
@@ -82,4 +83,26 @@ defmodule ExDeribit.MarketData.Instruments do
   end
 
   defp parse_response({:error, _reason} = error), do: error
+
+  defp valid_instrument?(%ExDeribit.Instrument{} = instrument) do
+    instrument.kind in @instrument_kinds and
+      valid_string?(instrument.instrument_name) and
+      valid_string?(instrument.base_currency) and
+      valid_string?(instrument.quote_currency) and
+      valid_string?(instrument.settlement_currency) and
+      valid_string?(instrument.instrument_type) and
+      is_boolean(instrument.is_active) and
+      valid_string?(instrument.state) and
+      valid_timestamp?(instrument.creation_timestamp) and
+      valid_timestamp?(instrument.expiration_timestamp) and
+      positive_number?(instrument.min_trade_amount) and
+      positive_number?(instrument.tick_size) and
+      positive_number?(instrument.contract_size) and
+      is_number(instrument.maker_commission) and
+      is_number(instrument.taker_commission)
+  end
+
+  defp valid_string?(value), do: is_binary(value) and byte_size(value) > 0
+  defp valid_timestamp?(value), do: is_integer(value) and value > 0
+  defp positive_number?(value), do: is_number(value) and value > 0
 end

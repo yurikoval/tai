@@ -13,6 +13,7 @@ defmodule Tai.VenueAdapters.Deribit.ProductsTest do
     settlement_currency: "BTC",
     instrument_type: "reversed",
     is_active: true,
+    state: "open",
     kind: "future",
     creation_timestamp: 1_588_838_404_000,
     expiration_timestamp: 4_133_404_800_000,
@@ -43,6 +44,7 @@ defmodule Tai.VenueAdapters.Deribit.ProductsTest do
           get: fn "any", %{expired: false} -> {:ok, instruments} end do
           assert {:ok, [product]} = Products.products(:deribit)
           assert product.symbol == :btc_perpetual
+          assert product.expiry == nil
           assert called(ExDeribit.MarketData.Instruments.get("any", %{expired: false}))
         end
       end)

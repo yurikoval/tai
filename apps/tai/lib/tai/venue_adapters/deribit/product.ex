@@ -1,19 +1,21 @@
 defmodule Tai.VenueAdapters.Deribit.Product do
   @time_unit :millisecond
-  @legacy_inverse_currencies ~w(BTC ETH)
-  @future_name ~r/^(BTC|ETH)-(?:PERPETUAL|\d{1,2}[A-Z]{3}\d{2})$/
+  @inverse_currencies ~w(BTC ETH)
+  @months ~w(JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC)
+          |> Enum.with_index(1)
+          |> Map.new()
+  @perpetual_name ~r/^(BTC|ETH)-PERPETUAL$/
+  @future_name ~r/^(BTC|ETH)-(\d{1,2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})$/
 
   @spec build(ExDeribit.Instrument.t(), Tai.Venue.id()) ::
           {:ok, Tai.Venues.Product.t()} | {:error, term}
   def build(%ExDeribit.Instrument{} = instrument, venue_id) do
     with :ok <- validate_contract(instrument),
-         :ok <- validate_instrument_name(instrument.instrument_name, instrument.base_currency),
          :ok <- validate_string(:base_currency, instrument.base_currency),
          :ok <- validate_string(:quote_currency, instrument.quote_currency),
-         {:ok, status} <- to_status(instrument.is_active),
-         {:ok, type} <- to_type(instrument),
+         {:ok, status} <- to_status(instrument.is_active, instrument.state),
+         {:ok, type, expiry} <- type_and_expiry(instrument),
          {:ok, listing} <- timestamp(:creation_timestamp, instrument.creation_timestamp),
-         {:ok, expiry} <- timestamp(:expiration_timestamp, instrument.expiration_timestamp),
          {:ok, min_trade_amount} <-
            positive_decimal(:min_trade_amount, instrument.min_trade_amount),
          {:ok, tick_size} <- positive_decimal(:tick_size, instrument.tick_size),
@@ -74,16 +76,7 @@ defmodule Tai.VenueAdapters.Deribit.Product do
          quote_currency: "USD",
          settlement_currency: base
        })
-       when base in @legacy_inverse_currencies,
-       do: :ok
-
-  defp validate_contract(%ExDeribit.Instrument{
-         instrument_type: nil,
-         base_currency: base,
-         quote_currency: "USD",
-         settlement_currency: nil
-       })
-       when base in @legacy_inverse_currencies,
+       when base in @inverse_currencies,
        do: :ok
 
   defp validate_contract(%ExDeribit.Instrument{} = instrument) do
@@ -93,27 +86,55 @@ defmodule Tai.VenueAdapters.Deribit.Product do
        instrument.settlement_currency}}}
   end
 
-  defp validate_instrument_name(name, base) when is_binary(name) and is_binary(base) do
-    case Regex.run(@future_name, name, capture: :all_but_first) do
-      [currency] when currency == base -> :ok
-      _ -> {:error, {:invalid_instrument, {:instrument_name, name}}}
-    end
-  end
-
-  defp validate_instrument_name(name, _base) do
-    {:error, {:invalid_instrument, {:instrument_name, name}}}
-  end
-
   defp validate_string(_field, value) when is_binary(value) and byte_size(value) > 0, do: :ok
   defp validate_string(field, value), do: {:error, {:invalid_instrument, {field, value}}}
 
-  defp to_status(true), do: {:ok, :trading}
-  defp to_status(false), do: {:ok, :halt}
-  defp to_status(value), do: {:error, {:invalid_instrument, {:is_active, value}}}
+  defp to_status(true, "open"), do: {:ok, :trading}
 
-  defp to_type(%ExDeribit.Instrument{instrument_name: instrument_name}) do
-    type = if String.ends_with?(instrument_name, "-PERPETUAL"), do: :swap, else: :future
-    {:ok, type}
+  defp to_status(active, state)
+       when is_boolean(active) and is_binary(state) and byte_size(state) > 0,
+       do: {:ok, :halt}
+
+  defp to_status(value, _state) when not is_boolean(value),
+    do: {:error, {:invalid_instrument, {:is_active, value}}}
+
+  defp to_status(_active, state), do: {:error, {:invalid_instrument, {:state, state}}}
+
+  defp type_and_expiry(%ExDeribit.Instrument{
+         instrument_name: name,
+         base_currency: base,
+         expiration_timestamp: expiration_timestamp
+       })
+       when is_binary(name) and is_binary(base) do
+    case Regex.run(@perpetual_name, name, capture: :all_but_first) do
+      [currency] when currency == base ->
+        {:ok, :swap, nil}
+
+      _ ->
+        dated_future(name, base, expiration_timestamp)
+    end
+  end
+
+  defp type_and_expiry(%ExDeribit.Instrument{instrument_name: name}) do
+    {:error, {:invalid_instrument, {:instrument_name, name}}}
+  end
+
+  defp dated_future(name, base, expiration_timestamp) do
+    with [currency, day, month, year] <- Regex.run(@future_name, name, capture: :all_but_first),
+         true <- currency == base,
+         {day, ""} <- Integer.parse(day),
+         {year, ""} <- Integer.parse(year),
+         {:ok, date} <- Date.new(year + 2000, Map.fetch!(@months, month), day) do
+      with {:ok, expiry} <- timestamp(:expiration_timestamp, expiration_timestamp),
+           true <- DateTime.to_date(expiry) == date do
+        {:ok, :future, expiry}
+      else
+        {:error, _reason} = error -> error
+        false -> {:error, {:invalid_instrument, {:expiration_timestamp, expiration_timestamp}}}
+      end
+    else
+      _ -> {:error, {:invalid_instrument, {:instrument_name, name}}}
+    end
   end
 
   defp timestamp(field, value) when is_integer(value) and value > 0 do

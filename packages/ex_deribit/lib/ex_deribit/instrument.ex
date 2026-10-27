@@ -12,6 +12,7 @@ defmodule ExDeribit.Instrument do
           leverage: number,
           kind: String.t(),
           is_active: boolean,
+          state: String.t(),
           instrument_name: name,
           expiration_timestamp: pos_integer,
           creation_timestamp: pos_integer,
@@ -33,6 +34,7 @@ defmodule ExDeribit.Instrument do
     leverage
     kind
     is_active
+    state
     instrument_name
     expiration_timestamp
     creation_timestamp

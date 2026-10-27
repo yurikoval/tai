@@ -18,16 +18,12 @@ defmodule Tai.VenueAdapters.Deribit.Positions do
     as: :from
 
   defp fetch_venue_positions(currencies, venue_credentials) do
-    currencies
-    |> Enum.reduce(
-      {:ok, []},
-      fn c, {:ok, existing_venue_positions} ->
-        with {:ok, currency_venue_positions} <-
-               ExDeribit.Accounts.Positions.get(venue_credentials, c.currency) do
-          {:ok, existing_venue_positions ++ currency_venue_positions}
-        end
+    Enum.reduce_while(currencies, {:ok, []}, fn currency, {:ok, positions} ->
+      case ExDeribit.Accounts.Positions.get(venue_credentials, currency.currency) do
+        {:ok, currency_positions} -> {:cont, {:ok, positions ++ currency_positions}}
+        {:error, _reason} = error -> {:halt, error}
       end
-    )
+    end)
   end
 
   defdelegate to_symbol(instrument_name),

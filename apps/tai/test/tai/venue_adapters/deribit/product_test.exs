@@ -10,9 +10,10 @@ defmodule Tai.VenuesAdapters.Deribit.ProductTest do
     settlement_currency: "BTC",
     instrument_type: "reversed",
     is_active: true,
+    state: "open",
     kind: "future",
     creation_timestamp: 1_588_838_404_000,
-    expiration_timestamp: 1_590_134_400_000,
+    expiration_timestamp: 1_601_020_800_000,
     min_trade_amount: 0.1,
     tick_size: 0.005,
     contract_size: 10.0,
@@ -37,17 +38,26 @@ defmodule Tai.VenuesAdapters.Deribit.ProductTest do
       refute product.is_quanto
       assert product.is_inverse
       assert %DateTime{} = product.listing
-      assert %DateTime{} = product.expiry
+      assert DateTime.to_date(product.expiry) == ~D[2020-09-25]
     end
 
-    test "supports legacy BTC and ETH inverse records without contract metadata" do
-      assert {:ok, product} = build(%{instrument_type: nil, settlement_currency: nil})
-      assert product.is_inverse
+    test "rejects inverse records without explicit contract metadata" do
+      assert {:error, {:unsupported_instrument, {:contract, nil, "BTC", "USD", nil}}} =
+               build(%{instrument_type: nil, settlement_currency: nil})
     end
 
-    test "type is :swap for a perpetual future" do
+    test "perpetual futures are swaps without expiry" do
       assert {:ok, product} = build(%{instrument_name: "BTC-PERPETUAL"})
       assert product.type == :swap
+      assert product.expiry == nil
+    end
+
+    test "only active open instruments are trading" do
+      assert {:ok, locked} = build(%{state: "locked"})
+      assert locked.status == :halt
+
+      assert {:ok, inactive} = build(%{is_active: false})
+      assert inactive.status == :halt
     end
 
     test "assigns maker and taker fees" do
@@ -78,9 +88,15 @@ defmodule Tai.VenuesAdapters.Deribit.ProductTest do
       assert {:error, {:invalid_instrument, {:tick_size, 0}}} = build(%{tick_size: 0})
     end
 
-    test "rejects malformed or unexpected instrument names before atom conversion" do
+    test "rejects malformed, impossible, and mismatched expiry names before atom conversion" do
       assert {:error, {:invalid_instrument, {:instrument_name, "BTC-EVIL-PERPETUAL"}}} =
                build(%{instrument_name: "BTC-EVIL-PERPETUAL"})
+
+      assert {:error, {:invalid_instrument, {:instrument_name, "BTC-31FEB20"}}} =
+               build(%{instrument_name: "BTC-31FEB20"})
+
+      assert {:error, {:invalid_instrument, {:expiration_timestamp, 1_590_134_400_000}}} =
+               build(%{expiration_timestamp: 1_590_134_400_000})
     end
   end
 
