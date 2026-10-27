@@ -49,8 +49,14 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth do
   defp process_order(%{"client_oid" => venue_client_id} = msg, received_at, state)
        when is_binary(venue_client_id) do
     case decode_client_id(venue_client_id) do
-      {:ok, client_id} -> Stream.UpdateOrder.apply(client_id, msg, received_at, state)
-      :error -> warn_unhandled(msg, received_at, state)
+      {:ok, client_id} ->
+        case Stream.UpdateOrder.apply(client_id, msg, received_at, state) do
+          {:error, reason} -> warn_update_error(client_id, reason, state)
+          _result -> :ok
+        end
+
+      :error ->
+        warn_unhandled(msg, received_at, state)
     end
   end
 
@@ -62,6 +68,13 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth do
     rescue
       _ in [ArgumentError, MatchError] -> :error
     end
+  end
+
+  defp warn_update_error(client_id, reason, state) do
+    TaiEvents.warning(%Tai.Events.StreamError{
+      venue_id: state.venue,
+      reason: {:order_update, client_id, reason}
+    })
   end
 
   defp warn_unhandled(msg, received_at, state) do

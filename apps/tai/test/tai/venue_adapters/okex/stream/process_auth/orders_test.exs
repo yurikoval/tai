@@ -226,6 +226,31 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth.OrdersTest do
     end
   end
 
+  test "surfaces returned internal order update failures" do
+    client_id = Ecto.UUID.generate()
+
+    venue_order_data =
+      build_venue_order(%{
+        "client_oid" => to_venue_client_id(client_id),
+        "state" => "-1"
+      })
+
+    with_mock Tai.Orders.OrderTransitionWorker,
+      apply: fn ^client_id, _attrs -> {:error, :order_not_found} end do
+      cast_order_msg(%{"table" => "futures/order", "data" => [venue_order_data]})
+
+      assert_event(
+        %Tai.Events.StreamError{
+          venue_id: @venue,
+          reason: {:order_update, ^client_id, :order_not_found}
+        },
+        :warning
+      )
+
+      refute_event(%Tai.Events.StreamMessageUnhandled{msg: ^venue_order_data}, :warning)
+    end
+  end
+
   test "logs invalid private order timestamps without crashing" do
     cast_order_msg(%{
       "table" => "futures/order",
