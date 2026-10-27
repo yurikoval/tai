@@ -125,12 +125,14 @@ defmodule Tai.VenueAdapters.Deribit.Product do
          {day, ""} <- Integer.parse(day),
          {year, ""} <- Integer.parse(year),
          {:ok, date} <- Date.new(year + 2000, Map.fetch!(@months, month), day) do
+      expected_expiry = DateTime.new!(date, ~T[08:00:00], "Etc/UTC")
+
       with {:ok, expiry} <- timestamp(:expiration_timestamp, expiration_timestamp),
-           true <- DateTime.to_date(expiry) == date do
+           :eq <- DateTime.compare(expiry, expected_expiry) do
         {:ok, :future, expiry}
       else
         {:error, _reason} = error -> error
-        false -> {:error, {:invalid_instrument, {:expiration_timestamp, expiration_timestamp}}}
+        _ -> {:error, {:invalid_instrument, {:expiration_timestamp, expiration_timestamp}}}
       end
     else
       _ -> {:error, {:invalid_instrument, {:instrument_name, name}}}

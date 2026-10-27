@@ -38,7 +38,7 @@ defmodule Tai.VenuesAdapters.Deribit.ProductTest do
       refute product.is_quanto
       assert product.is_inverse
       assert %DateTime{} = product.listing
-      assert DateTime.to_date(product.expiry) == ~D[2020-09-25]
+      assert DateTime.compare(product.expiry, ~U[2020-09-25 08:00:00Z]) == :eq
     end
 
     test "rejects inverse records without explicit contract metadata" do
@@ -97,6 +97,9 @@ defmodule Tai.VenuesAdapters.Deribit.ProductTest do
 
       assert {:error, {:invalid_instrument, {:expiration_timestamp, 1_590_134_400_000}}} =
                build(%{expiration_timestamp: 1_590_134_400_000})
+
+      assert {:error, {:invalid_instrument, {:expiration_timestamp, 1_600_992_000_000}}} =
+               build(%{expiration_timestamp: 1_600_992_000_000})
     end
   end
 

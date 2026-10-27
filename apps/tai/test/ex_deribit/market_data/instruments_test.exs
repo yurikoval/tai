@@ -40,17 +40,33 @@ defmodule ExDeribit.MarketData.InstrumentsTest do
     end
   end
 
-  test "validates currency and option types without making a request" do
-    assert {:error, {:invalid_currency, nil}} = Instruments.get(nil)
-    assert {:error, {:invalid_options, []}} = Instruments.get("BTC", [])
+  test "preserves the existing option query" do
+    response = %ExDeribit.JsonRpcResponse{result: []}
 
-    assert {:error, {:invalid_option, :kind, :unknown}} =
-             Instruments.get("BTC", %{kind: :unknown})
+    with_mock ExDeribit.HTTPClient,
+      non_auth_get: fn "/public/get_instruments", params ->
+        assert params == %{currency: "BTC", kind: :option}
+        {:ok, response}
+      end do
+      assert {:ok, []} = Instruments.get("BTC", %{kind: :option})
+    end
+  end
 
-    assert {:error, {:invalid_option, :expired, "false"}} =
-             Instruments.get("BTC", %{expired: "false"})
+  test "rejects unsupported currencies and query kinds without making a request" do
+    with_mock ExDeribit.HTTPClient,
+      non_auth_get: fn _path, _params -> flunk("unexpected request") end do
+      assert {:error, {:invalid_currency, nil}} = Instruments.get(nil)
+      assert {:error, {:invalid_currency, "AAVE"}} = Instruments.get("AAVE")
 
-    assert {:error, {:invalid_option, :limit, 10}} = Instruments.get("BTC", %{limit: 10})
+      assert {:error, {:invalid_option, :kind, :spot}} =
+               Instruments.get("any", %{kind: :spot})
+
+      assert {:error, {:invalid_option, :kind, :future_combo}} =
+               Instruments.get("BTC", %{kind: :future_combo})
+
+      assert {:error, {:invalid_option, :kind, :option_combo}} =
+               Instruments.get("ETH", %{kind: :option_combo})
+    end
   end
 
   test "returns a typed error for a non-list result" do
