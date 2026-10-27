@@ -1,4 +1,6 @@
 defmodule Tai.VenueAdapters.Gdax.StreamSupervisor do
+  @moduledoc false
+
   use Supervisor
 
   alias Tai.VenueAdapters.Gdax.Stream.{

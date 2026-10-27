@@ -1,6 +1,6 @@
 defmodule ExGdax.Api do
   @moduledoc """
-  Provides basic HTTP interface with GDAX API.
+  Provides the basic HTTP interface for the Coinbase Exchange API.
   """
   alias ExGdax.{Config, Auth}
 
@@ -47,10 +47,7 @@ defmodule ExGdax.Api do
   defp query_string(path, params) when map_size(params) == 0, do: path
 
   defp query_string(path, params) do
-    query =
-      params
-      |> Enum.map(fn {key, val} -> "#{key}=#{val}" end)
-      |> Enum.join("&")
+    query = Enum.map_join(params, "&", fn {key, val} -> "#{key}=#{val}" end)
 
     path <> "?" <> query
   end

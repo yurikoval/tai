@@ -206,7 +206,7 @@ defmodule ExGdax do
   @doc """
   Place a new order.
 
-  Refer to params listed in [GDAX API docs](https://docs.gdax.com/#place-a-new-order)
+  Refer to the [Coinbase Exchange API docs](https://docs.cdp.coinbase.com/exchange/docs/welcome).
 
   ## Examples
 

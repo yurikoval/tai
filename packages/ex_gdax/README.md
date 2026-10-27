@@ -18,7 +18,7 @@ Run `mix deps.get` to install.
 
 ## Configuration
 
-Add the following configuration variables in your config/config.exs file:
+Public market-data requests do not require credentials. Configure credentials only for private account, order, and transfer requests:
 
 ```elixir
 use Mix.Config
@@ -40,7 +40,7 @@ config :ex_gdax, api_key:        System.get_env("GDAX_API_KEY"),
                  api_passphrase: System.get_env("GDAX_API_PASSPHRASE")
 ```
 
-Alternatively, if you need to work with multiple GDAX accounts, the private API
+Alternatively, if you need to work with multiple Coinbase Exchange accounts, the private API
 call functions accept an additional `config` (`ExGdax.Config` struct) parameter:
 
 ```elixir
