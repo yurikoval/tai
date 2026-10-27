@@ -61,13 +61,17 @@ defmodule Tai.VenueAdapters.DeltaExchange.ProductTest do
     end
   end
 
-  test ".build/2 can parse move products" do
-    venue_product =
-      build_venue_product(symbol: "MV-BTC-60400-181121", contract_type: "move_options")
+  test ".build/2 can parse move options" do
+    for {symbol, contract_type} <- [
+          {"MOVE-BTC-60400-181121", "move_options"},
+          {"MV-BTC-60400-181121", "unknown"}
+        ] do
+      venue_product = build_venue_product(symbol: symbol, contract_type: contract_type)
+      product = VenueAdapters.DeltaExchange.Product.build(venue_product, @venue)
 
-    product = VenueAdapters.DeltaExchange.Product.build(venue_product, @venue)
-
-    assert product.type == :move
+      assert product.type == :option
+      assert product.payoff_type == :move
+    end
   end
 
   @quoting_asset struct(ExDeltaExchange.Product.Asset, symbol: "USDT")

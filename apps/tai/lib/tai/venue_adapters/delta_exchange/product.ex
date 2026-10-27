@@ -20,7 +20,7 @@ defmodule Tai.VenueAdapters.DeltaExchange.Product do
       venue_quote: venue_product.quoting_asset.symbol,
       status: venue_product |> status(),
       type: venue_product |> type(),
-      payoff_type: venue_product.contract_type |> payoff_type(),
+      payoff_type: venue_product |> payoff_type(),
       collateral: false,
       price_increment: venue_product.tick_size |> Decimal.new(),
       size_increment: venue_product.tick_size |> Decimal.new(),
@@ -52,19 +52,26 @@ defmodule Tai.VenueAdapters.DeltaExchange.Product do
       venue_product.contract_type == "interest_rate_swaps" -> :swap
       venue_product.contract_type == "spreads" -> :swap
       venue_product.contract_type == "spot" -> :spot
-      venue_product.contract_type == "move_options" -> :move
-      String.starts_with?(venue_product.symbol, "MV-") -> :move
+      move_option?(venue_product) -> :option
       true -> :unknown
     end
   end
 
-  defp payoff_type(contract_type) when contract_type in @vanilla_option_contract_types,
-    do: :vanilla
+  defp payoff_type(%{contract_type: contract_type})
+       when contract_type in @vanilla_option_contract_types,
+       do: :vanilla
 
-  defp payoff_type(contract_type) when contract_type in @binary_option_contract_types,
-    do: :binary
+  defp payoff_type(%{contract_type: contract_type})
+       when contract_type in @binary_option_contract_types,
+       do: :binary
 
-  defp payoff_type(_contract_type), do: nil
+  defp payoff_type(venue_product) do
+    if move_option?(venue_product), do: :move, else: nil
+  end
+
+  defp move_option?(%{contract_type: "move_options"}), do: true
+  defp move_option?(%{symbol: "MV-" <> _symbol}), do: true
+  defp move_option?(_venue_product), do: false
 
   defp downcase_and_atom(str), do: str |> String.downcase() |> String.to_atom()
 end
