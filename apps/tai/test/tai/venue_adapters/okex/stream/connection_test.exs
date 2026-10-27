@@ -1,5 +1,6 @@
 defmodule Tai.VenueAdapters.OkEx.Stream.ConnectionTest do
   use ExUnit.Case, async: true
+  import Tai.TestSupport.Assertions.Event
 
   alias Tai.VenueAdapters.OkEx.Stream.Connection
   alias Tai.Venues.Streams.ConnectionAdapter
@@ -31,6 +32,18 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ConnectionTest do
 
     assert {:ok, ^state} = Connection.on_msg(msg, 123, state)
     assert_receive {:"$gen_cast", {^msg, 123}}
+  end
+
+  test "logs and ignores malformed compressed frames" do
+    TaiEvents.firehose_subscribe()
+    state = state()
+
+    assert {:ok, ^state} = Connection.handle_frame({:binary, <<0>>}, state)
+    assert_event(%Tai.Events.StreamError{}, :warning)
+
+    invalid_json = :zlib.zip("not-json")
+    assert {:ok, ^state} = Connection.handle_frame({:binary, invalid_json}, state)
+    assert_event(%Tai.Events.StreamError{}, :warning)
   end
 
   defp state do

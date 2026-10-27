@@ -35,27 +35,35 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth do
         {%{"table" => table, "data" => orders}, received_at},
         state
       )
-      when table in @product_types do
-    orders
-    |> Enum.each(fn %{"client_oid" => venue_client_id} = order_msg ->
-      venue_client_id
-      |> ClientId.from_base32()
-      |> Stream.UpdateOrder.apply(order_msg, received_at, state)
-    end)
-
+      when table in @product_types and is_list(orders) do
+    Enum.each(orders, &process_order(&1, received_at, state))
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({msg, received_at}, state) do
-    {:ok, last_received_at} = received_at |> Tai.Time.monotonic_to_date_time()
+    warn_unhandled(msg, received_at, state)
+    {:noreply, state}
+  end
 
+  defp process_order(%{"client_oid" => venue_client_id} = msg, received_at, state)
+       when is_binary(venue_client_id) do
+    try do
+      venue_client_id
+      |> ClientId.from_base32()
+      |> Stream.UpdateOrder.apply(msg, received_at, state)
+    rescue
+      _ -> warn_unhandled(msg, received_at, state)
+    end
+  end
+
+  defp process_order(msg, received_at, state), do: warn_unhandled(msg, received_at, state)
+
+  defp warn_unhandled(msg, received_at, state) do
     TaiEvents.warning(%Tai.Events.StreamMessageUnhandled{
       venue_id: state.venue,
       msg: msg,
-      received_at: last_received_at
+      received_at: Tai.Time.monotonic_to_date_time!(received_at)
     })
-
-    {:noreply, state}
   end
 end

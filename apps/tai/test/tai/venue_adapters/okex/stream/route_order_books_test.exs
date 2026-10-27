@@ -5,7 +5,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.RouteOrderBooksTest do
   @venue :venue_a
   @venue_symbol "BTC-USD-SWAP"
   @product struct(Tai.Venues.Product, venue_id: @venue, venue_symbol: @venue_symbol)
-  @received_at Timex.now()
+  @received_at Tai.Time.monotonic_time()
 
   setup do
     Process.register(self(), ProcessOrderBook.to_name(@venue, @venue_symbol))

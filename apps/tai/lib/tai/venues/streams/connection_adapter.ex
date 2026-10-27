@@ -133,22 +133,19 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
       end
 
       @impl true
-      def handle_frame({:binary, <<43, 200, 207, 75, 7, 0>> = pong}, state) do
-        msg_received_at = received_at()
-
-        :zlib
-        |> apply(state.compression, [pong])
-        |> on_msg(msg_received_at, state)
-      end
-
-      @impl true
       def handle_frame({:binary, compressed_data}, state) do
         msg_received_at = received_at()
 
-        :zlib
-        |> apply(state.compression, [compressed_data])
-        |> Jason.decode!()
-        |> on_msg(msg_received_at, state)
+        try do
+          case apply(:zlib, state.compression, [compressed_data]) do
+            "pong" -> on_msg("pong", msg_received_at, state)
+            msg -> decode_and_handle(msg, msg_received_at, state)
+          end
+        rescue
+          error -> warn_invalid_frame({:invalid_binary_frame, error}, state)
+        catch
+          kind, reason -> warn_invalid_frame({:invalid_binary_frame, {kind, reason}}, state)
+        end
       end
 
       @impl true
@@ -158,20 +155,7 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
 
       @impl true
       def handle_frame({:text, msg}, state) do
-        msg_received_at = received_at()
-
-        case Jason.decode(msg) do
-          {:ok, decoded} ->
-            on_msg(decoded, msg_received_at, state)
-
-          {:error, error} ->
-            TaiEvents.warning(%Tai.Events.StreamError{
-              venue_id: state.venue,
-              reason: {:invalid_json, error}
-            })
-
-            {:ok, state}
-        end
+        decode_and_handle(msg, received_at(), state)
       end
 
       @impl true
@@ -202,9 +186,15 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
       end
 
       @impl true
-      def handle_info({:heartbeat, :timeout}, state) do
+      def handle_info(
+            {:timeout, timeout_ref, :heartbeat_timeout},
+            %{heartbeat_timeout_timer: timeout_ref} = state
+          ) do
         {:close, {1000, "heartbeat timeout"}, state}
       end
+
+      @impl true
+      def handle_info({:timeout, _timeout_ref, :heartbeat_timeout}, state), do: {:ok, state}
 
       @impl true
       def handle_info({:subscribe, phase}, state) do
@@ -239,13 +229,25 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
       end
 
       defp schedule_heartbeat_timeout(state) do
-        timer = Process.send_after(self(), {:heartbeat, :timeout}, state.heartbeat_timeout)
+        timer = :erlang.start_timer(state.heartbeat_timeout, self(), :heartbeat_timeout)
         %{state | heartbeat_timeout_timer: timer}
       end
 
       defp cancel_heartbeat_timeout(state) do
         Process.cancel_timer(state.heartbeat_timeout_timer)
         %{state | heartbeat_timeout_timer: nil}
+      end
+
+      defp decode_and_handle(msg, msg_received_at, state) do
+        case Jason.decode(msg) do
+          {:ok, decoded} -> on_msg(decoded, msg_received_at, state)
+          {:error, error} -> warn_invalid_frame({:invalid_json, error}, state)
+        end
+      end
+
+      defp warn_invalid_frame(reason, state) do
+        TaiEvents.warning(%Tai.Events.StreamError{venue_id: state.venue, reason: reason})
+        {:ok, state}
       end
 
       defp add_request(state) do

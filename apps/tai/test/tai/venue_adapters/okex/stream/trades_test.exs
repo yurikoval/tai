@@ -39,4 +39,35 @@ defmodule Tai.VenueAdapters.OkEx.Stream.TradesTest do
     assert trade.price == Decimal.new("5556.91")
     assert trade.taker_side == :sell
   end
+
+  test "logs and ignores malformed V5 trade payloads" do
+    pid = start_supervised!({ProcessOptionalChannels, [venue: :my_venue]})
+    TaiEvents.firehose_subscribe()
+    received_at = Tai.Time.monotonic_time()
+
+    GenServer.cast(pid, {
+      %{
+        "arg" => %{"channel" => "trades"},
+        "data" => [
+          %{},
+          %{
+            "instId" => "BTC-USDT",
+            "tradeId" => "1",
+            "px" => "invalid",
+            "sz" => "2",
+            "side" => "unknown",
+            "ts" => "invalid"
+          }
+        ]
+      },
+      received_at
+    })
+
+    GenServer.cast(pid, {%{"arg" => %{"channel" => "trades"}, "data" => %{}}, received_at})
+
+    assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
+    assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
+    assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
+    assert %ProcessOptionalChannels.State{} = :sys.get_state(pid)
+  end
 end

@@ -33,7 +33,8 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOptionalChannels do
   def handle_cast(
         {%{"arg" => %{"channel" => "trades"}, "data" => data}, received_at},
         state
-      ) do
+      )
+      when is_list(data) do
     Enum.each(data, &Stream.Trades.broadcast(&1, state.venue, received_at))
     {:noreply, state}
   end

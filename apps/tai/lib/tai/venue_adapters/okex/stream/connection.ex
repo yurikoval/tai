@@ -66,14 +66,6 @@ defmodule Tai.VenueAdapters.OkEx.Stream.Connection do
     {:ok, state}
   end
 
-  @order_tables ~w(futures/order swap/order spot/order)
-
-  @impl true
-  def on_msg(%{"table" => table} = msg, received_at, state) when table in @order_tables do
-    forward(msg, received_at, state)
-    {:ok, state}
-  end
-
   @impl true
   def on_msg(msg, received_at, state) do
     forward(msg, received_at, state)

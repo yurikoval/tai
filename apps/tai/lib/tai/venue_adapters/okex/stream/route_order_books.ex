@@ -81,10 +81,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.RouteOrderBooks do
     TaiEvents.warning(%Tai.Events.StreamMessageUnhandled{
       venue_id: state.venue,
       msg: msg,
-      received_at: received_at(received_at)
+      received_at: Tai.Time.monotonic_to_date_time!(received_at)
     })
   end
-
-  defp received_at(%DateTime{} = received_at), do: received_at
-  defp received_at(received_at), do: Tai.Time.monotonic_to_date_time!(received_at)
 end

@@ -184,6 +184,16 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth.OrdersTest do
     assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
   end
 
+  test "logs and ignores malformed private order payloads" do
+    cast_order_msg(%{"table" => "futures/order", "data" => %{}})
+    cast_order_msg(%{"table" => "futures/order", "data" => [%{}, %{"client_oid" => "invalid"}]})
+
+    assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
+    assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
+    assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
+    assert %ProcessAuth.State{} = :sys.get_state(ProcessAuth.process_name(@venue))
+  end
+
   defp to_venue_client_id(client_id) do
     client_id |> ClientId.to_venue()
   end

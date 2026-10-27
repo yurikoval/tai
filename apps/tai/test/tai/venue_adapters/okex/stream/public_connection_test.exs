@@ -56,6 +56,12 @@ defmodule Tai.VenueAdapters.OkEx.Stream.PublicConnectionTest do
     assert ponged.heartbeat_timeout_timer == nil
     assert is_reference(ponged.heartbeat_timer)
 
+    assert {:ok, ^ponged} =
+             PublicConnection.handle_info(
+               {:timeout, pinging.heartbeat_timeout_timer, :heartbeat_timeout},
+               ponged
+             )
+
     Process.cancel_timer(ponged.heartbeat_timer)
   end
 
