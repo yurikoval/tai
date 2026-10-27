@@ -59,6 +59,7 @@ defmodule ExOkex.Public.Instrument do
 
   @decimal ~r/\A\d+(?:\.\d+)?\z/
   @timestamp ~r/\A\d+\z/
+  @non_zero_digit ~r/[1-9]/
 
   @spec new(map) :: {:ok, t} | {:error, {:invalid_instrument, map}}
   def new(data) when is_map(data) do
@@ -92,8 +93,9 @@ defmodule ExOkex.Public.Instrument do
   def new(data), do: {:error, {:invalid_instrument, data}}
 
   defp validate_common(data) do
-    if non_empty?(data["instId"]) and non_empty?(data["state"]) and
-         decimal?(data["lotSz"]) and decimal?(data["minSz"]) and decimal?(data["tickSz"]) and
+    if optional_string?(data["alias"]) and non_empty?(data["instId"]) and
+         non_empty?(data["state"]) and positive_decimal?(data["lotSz"]) and
+         positive_decimal?(data["minSz"]) and positive_decimal?(data["tickSz"]) and
          timestamp?(data["listTime"]) and optional_timestamp?(data["expTime"]),
        do: :ok,
        else: :error
@@ -103,9 +105,22 @@ defmodule ExOkex.Public.Instrument do
     if non_empty?(data["baseCcy"]) and non_empty?(data["quoteCcy"]), do: :ok, else: :error
   end
 
-  defp validate_type(%{"instType" => type} = data) when type in ["SWAP", "FUTURES"] do
+  defp validate_type(%{"instType" => "SWAP"} = data), do: validate_derivative(data)
+
+  defp validate_type(%{"instType" => "FUTURES"} = data) do
+    with :ok <- validate_derivative(data),
+         true <- timestamp?(data["expTime"]) do
+      :ok
+    else
+      _ -> :error
+    end
+  end
+
+  defp validate_type(_data), do: :error
+
+  defp validate_derivative(data) do
     with true <- data["ctType"] in ["linear", "inverse"],
-         true <- decimal?(data["ctVal"]),
+         true <- positive_decimal?(data["ctVal"]),
          true <- non_empty?(data["ctValCcy"]),
          {:ok, {base, quote}} <- underlying(data),
          true <- data["ctValCcy"] in [base, quote] do
@@ -115,20 +130,32 @@ defmodule ExOkex.Public.Instrument do
     end
   end
 
-  defp validate_type(_data), do: :error
-
   defp underlying(data) do
     value = present(data["uly"]) || present(data["instFamily"])
 
-    case value && String.split(value, "-", parts: 2) do
+    case value && String.split(value, "-") do
       [base, quote] when base != "" and quote != "" -> {:ok, {base, quote}}
       _ -> :error
     end
   end
 
-  defp decimal?(value), do: is_binary(value) and Regex.match?(@decimal, value)
-  defp timestamp?(value), do: is_binary(value) and Regex.match?(@timestamp, value)
+  defp positive_decimal?(value),
+    do:
+      is_binary(value) and Regex.match?(@decimal, value) and Regex.match?(@non_zero_digit, value)
+
+  defp timestamp?(value) when is_binary(value) do
+    with true <- Regex.match?(@timestamp, value),
+         {milliseconds, ""} <- Integer.parse(value),
+         {:ok, _datetime} <- DateTime.from_unix(milliseconds, :millisecond) do
+      true
+    else
+      _ -> false
+    end
+  end
+
+  defp timestamp?(_value), do: false
   defp optional_timestamp?(value), do: value in [nil, ""] or timestamp?(value)
+  defp optional_string?(value), do: is_nil(value) or is_binary(value)
   defp non_empty?(value), do: is_binary(value) and value != ""
   defp present(value) when is_binary(value) and value != "", do: value
   defp present(_value), do: nil

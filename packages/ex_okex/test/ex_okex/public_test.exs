@@ -3,7 +3,7 @@ defmodule ExOkex.PublicTest do
 
   import Mock
 
-  alias ExOkex.{Config, Public}
+  alias ExOkex.{Api, Config, Public}
   alias ExOkex.Public.Instrument
 
   @instrument %{
@@ -75,6 +75,12 @@ defmodule ExOkex.PublicTest do
     end
   end
 
+  test "returns an error for malformed successful JSON" do
+    response = %HTTPoison.Response{body: "not json", status_code: 200}
+
+    assert Api.parse_response({:ok, response}) == {:error, "not json", 200}
+  end
+
   test "rejects malformed response envelopes" do
     with_mock ExOkex.Api.Public,
       get: fn _, _, _ -> {:ok, %{"code" => "0"}} end do
@@ -91,17 +97,47 @@ defmodule ExOkex.PublicTest do
     end
   end
 
-  test "rejects present but invalid instrument fields" do
-    invalid = Map.put(@instrument, "lotSz", "not-a-decimal")
+  test "rejects instrument fields that product hydration cannot safely consume" do
+    assert {:ok, %Instrument{}} = Instrument.new(future(%{}))
 
-    with_mock ExOkex.Api.Public,
-      get: fn _, _, _ -> {:ok, %{"code" => "0", "data" => [invalid]}} end do
-      assert Public.instruments("SPOT") == {:error, {:invalid_instrument, invalid}}
-    end
+    invalid_instruments = [
+      Map.put(@instrument, "alias", []),
+      Map.put(@instrument, "listTime", String.duplicate("9", 100)),
+      Map.put(@instrument, "lotSz", "not-a-decimal"),
+      Map.put(@instrument, "lotSz", "0"),
+      Map.put(@instrument, "minSz", "0.0"),
+      Map.put(@instrument, "tickSz", "00.000"),
+      future(%{"expTime" => ""}),
+      future(%{"uly" => "BTC-USDT-EXTRA"}),
+      future(%{"ctVal" => "0"})
+    ]
+
+    Enum.each(invalid_instruments, fn invalid ->
+      assert Instrument.new(invalid) == {:error, {:invalid_instrument, invalid}}
+    end)
   end
 
   test "rejects unsupported instrument types before making a request" do
     assert Public.instruments("OPTION") == {:error, {:invalid_instrument_type, "OPTION"}}
+  end
+
+  defp future(overrides) do
+    @instrument
+    |> Map.merge(%{
+      "alias" => "quarter",
+      "baseCcy" => "",
+      "ctType" => "linear",
+      "ctVal" => "0.01",
+      "ctValCcy" => "BTC",
+      "expTime" => "1774598400000",
+      "instFamily" => "BTC-USDT",
+      "instId" => "BTC-USDT-260327",
+      "instType" => "FUTURES",
+      "quoteCcy" => "",
+      "settleCcy" => "USDT",
+      "uly" => "BTC-USDT"
+    })
+    |> Map.merge(overrides)
   end
 
   defp restore_env(key, nil), do: Application.delete_env(:ex_okex, key)
