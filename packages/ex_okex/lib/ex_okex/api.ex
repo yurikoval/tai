@@ -17,14 +17,7 @@ defmodule ExOkex.Api do
   @spec query_string(path, params) :: String.t()
   def query_string(path, params) when map_size(params) == 0, do: path
 
-  def query_string(path, params) do
-    query =
-      params
-      |> Enum.map(fn {key, val} -> "#{key}=#{val}" end)
-      |> Enum.join("&")
-
-    path <> "?" <> query
-  end
+  def query_string(path, params), do: path <> "?" <> URI.encode_query(params)
 
   @spec parse_response(
           {:ok, HTTPoison.Response.t() | HTTPoison.AsyncResponse.t()}
@@ -46,7 +39,7 @@ defmodule ExOkex.Api do
 
   defp parse_error_body(body, status_code) do
     case Jason.decode(body) do
-      {:ok, json} -> {:error, {json["code"], json["message"]}, status_code}
+      {:ok, json} -> {:error, {json["code"], json["msg"] || json["message"]}, status_code}
       {:error, _} -> {:error, body, status_code}
     end
   end

@@ -11,6 +11,7 @@ defmodule ExOkex.Config do
         }
 
   @default_api_url "https://www.okex.com"
+  @default_public_api_url "https://www.okx.com"
   defstruct [:api_key, :api_secret, :api_passphrase, api_url: @default_api_url]
 
   def config_or_env_config(nil) do
@@ -51,6 +52,14 @@ defmodule ExOkex.Config do
   def api_passphrase(access_key), do: from_env(access_key, :system)
 
   def api_url, do: from_env(:ex_okex, :api_url, @default_api_url)
+
+  def public_api_url do
+    fallback = Application.get_env(:ex_okex, :api_url, @default_public_api_url)
+
+    :ex_okex
+    |> Application.get_env(:public_api_url, fallback)
+    |> read_from_system(@default_public_api_url)
+  end
 
   defp from_env(key, :system) do
     System.get_env(key)
