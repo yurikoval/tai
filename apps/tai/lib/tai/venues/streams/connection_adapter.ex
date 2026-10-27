@@ -138,7 +138,7 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
 
         try do
           case apply(:zlib, state.compression, [compressed_data]) do
-            "pong" -> on_msg("pong", msg_received_at, state)
+            "pong" -> handle_pong(:pong, state)
             msg -> decode_and_handle(msg, msg_received_at, state)
           end
         rescue
