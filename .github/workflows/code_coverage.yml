@@ -38,6 +38,10 @@ jobs:
       - name: Install Dependencies
         run: mix deps.get
 
+      # Remove when Postgrex ships elixir-ecto/postgrex#769 in a Hex release.
+      - name: Apply upstream Postgrex warning fix
+        run: 'perl -pi -e "s/xref: \[exclude: \[Jason\]\]/elixirc_options: [no_warn_undefined: [Jason]]/" deps/postgrex/mix.exs'
+
       - name: Coveralls
         env:
           MIX_ENV: test
