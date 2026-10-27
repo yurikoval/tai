@@ -67,19 +67,28 @@ defmodule ExDeribit.MarketData.Instruments do
   defp parse_response({:error, _reason} = error), do: error
 
   defp valid_instrument?(%ExDeribit.Instrument{} = instrument) do
+    strings = [
+      instrument.instrument_name,
+      instrument.base_currency,
+      instrument.quote_currency,
+      instrument.settlement_currency,
+      instrument.instrument_type,
+      instrument.state
+    ]
+
+    timestamps = [instrument.creation_timestamp, instrument.expiration_timestamp]
+
+    positive_numbers = [
+      instrument.min_trade_amount,
+      instrument.tick_size,
+      instrument.contract_size
+    ]
+
     instrument.kind in @instrument_kinds and
-      valid_string?(instrument.instrument_name) and
-      valid_string?(instrument.base_currency) and
-      valid_string?(instrument.quote_currency) and
-      valid_string?(instrument.settlement_currency) and
-      valid_string?(instrument.instrument_type) and
       is_boolean(instrument.is_active) and
-      valid_string?(instrument.state) and
-      valid_timestamp?(instrument.creation_timestamp) and
-      valid_timestamp?(instrument.expiration_timestamp) and
-      positive_number?(instrument.min_trade_amount) and
-      positive_number?(instrument.tick_size) and
-      positive_number?(instrument.contract_size) and
+      Enum.all?(strings, &valid_string?/1) and
+      Enum.all?(timestamps, &valid_timestamp?/1) and
+      Enum.all?(positive_numbers, &positive_number?/1) and
       is_number(instrument.maker_commission) and
       is_number(instrument.taker_commission)
   end
