@@ -45,7 +45,7 @@ defmodule Tai.VenueAdapters.Gdax.StreamSupervisor do
   end
 
   # TODO: Make this configurable
-  defp endpoint, do: "wss://ws-feed.pro.coinbase.com/"
+  defp endpoint, do: "wss://ws-feed.exchange.coinbase.com"
 
   defp build_order_book_children(markets, quote_depth, broadcast_change_set) do
     markets
