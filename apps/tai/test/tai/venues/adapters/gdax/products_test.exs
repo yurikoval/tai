@@ -48,6 +48,27 @@ defmodule Tai.Venues.Adapters.Gdax.ProductsTest do
     end
   end
 
+  test "returns an explicit error for invalid product identifiers" do
+    invalid_products = [
+      {current_product(%{"id" => nil}), nil},
+      {current_product(%{"id" => 123}), nil},
+      {current_product(%{"id" => ""}), nil},
+      {current_product(%{"base_currency" => nil}), "BTC-USD"},
+      {current_product(%{"base_currency" => 123}), "BTC-USD"},
+      {current_product(%{"base_currency" => ""}), "BTC-USD"},
+      {current_product(%{"quote_currency" => nil}), "BTC-USD"},
+      {current_product(%{"quote_currency" => 123}), "BTC-USD"},
+      {current_product(%{"quote_currency" => ""}), "BTC-USD"}
+    ]
+
+    Enum.each(invalid_products, fn {product, product_id} ->
+      with_mock ExGdax, list_products: fn -> {:ok, [product]} end do
+        assert Products.products(:gdax) ==
+                 {:error, {:invalid_product, product_id, :malformed}}
+      end
+    end)
+  end
+
   test "returns an explicit error for a malformed products response" do
     with_mock ExGdax, list_products: fn -> {:ok, nil} end do
       assert Products.products(:gdax) ==

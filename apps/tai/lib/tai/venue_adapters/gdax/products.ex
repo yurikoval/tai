@@ -62,7 +62,10 @@ defmodule Tai.VenueAdapters.Gdax.Products do
            "min_market_funds" => raw_min_market_funds
          },
          venue_id
-       ) do
+       )
+       when is_binary(id) and byte_size(id) > 0 and is_binary(base_currency) and
+              byte_size(base_currency) > 0 and is_binary(quote_currency) and
+              byte_size(quote_currency) > 0 do
     with {:ok, status} <- Tai.VenueAdapters.Gdax.ProductStatus.normalize(exchange_status),
          {:ok, base_increment} <- cast_decimal(raw_base_increment),
          {:ok, quote_increment} <- cast_decimal(raw_quote_increment),
@@ -98,7 +101,10 @@ defmodule Tai.VenueAdapters.Gdax.Products do
   end
 
   defp build(product, _venue_id) when is_map(product) do
-    {:error, {:invalid_product, Map.get(product, "id"), :malformed}}
+    id = Map.get(product, "id")
+    id = if is_binary(id) and byte_size(id) > 0, do: id
+
+    {:error, {:invalid_product, id, :malformed}}
   end
 
   defp build(_product, _venue_id), do: {:error, {:invalid_product, nil, :malformed}}
