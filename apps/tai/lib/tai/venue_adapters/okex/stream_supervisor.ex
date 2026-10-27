@@ -51,7 +51,7 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisor do
       end
 
     (order_book_children ++ process_order_book_children ++ system ++ private_connection)
-    |> Supervisor.init(strategy: :one_for_one)
+    |> Supervisor.init(strategy: :rest_for_one)
   end
 
   # TODO: Make these configurable

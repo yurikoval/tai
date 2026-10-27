@@ -167,6 +167,33 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth.OrdersTest do
     assert order_2.leaves_qty == Decimal.new("0")
   end
 
+  test "rejects invalid private order identifiers and quantity domains" do
+    invalid_orders = [
+      %{"state" => "-1", "order_id" => " "},
+      %{"state" => "0", "size" => "0", "filled_qty" => "0"},
+      %{"state" => "0", "size" => "NaN", "filled_qty" => "0"},
+      %{"state" => "1", "size" => "1", "filled_qty" => "-1"},
+      %{"state" => "1", "size" => "1", "filled_size" => "2"},
+      %{"state" => "2", "size" => "0", "filled_qty" => "0"},
+      %{"state" => "2", "size" => "1", "filled_qty" => "Inf"},
+      %{"state" => "2", "size" => "1", "filled_qty" => "1", "order_id" => nil}
+    ]
+
+    parent = self()
+
+    with_mock Tai.Orders.OrderTransitionWorker,
+      apply: fn _client_id, _attrs -> send(parent, :transition_applied) end do
+      Enum.each(invalid_orders, fn attrs ->
+        venue_order_data = build_venue_order(attrs)
+        cast_order_msg(%{"table" => "futures/order", "data" => [venue_order_data]})
+
+        assert_event(%Tai.Events.StreamMessageUnhandled{msg: ^venue_order_data}, :warning)
+      end)
+
+      refute_receive :transition_applied
+    end
+  end
+
   test "logs a warning event when the order message has an invalid state" do
     cast_order_msg(%{
       "table" => "futures/order",

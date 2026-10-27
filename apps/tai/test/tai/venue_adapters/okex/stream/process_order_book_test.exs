@@ -138,6 +138,59 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
     end)
   end
 
+  test "accepts equal sequence ids only for empty keepalives", %{pid: pid} do
+    register_connection()
+
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+    assert_receive %Quote{}
+
+    GenServer.cast(
+      pid,
+      {:update, update(%{"seqId" => 10, "bids" => [], "asks" => []}), Timex.now()}
+    )
+
+    refute_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+    refute_receive %Quote{}
+    assert %{sequence_id: 10} = :sys.get_state(pid)
+  end
+
+  test "rejects equal sequence ids that change either side", %{pid: pid} do
+    register_connection()
+
+    changes = [
+      %{"bids" => [["100", "11", "0", "2"]]},
+      %{"asks" => [["101", "6", "0", "2"]]}
+    ]
+
+    Enum.each(changes, fn change ->
+      GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+      assert_receive %Quote{}
+
+      GenServer.cast(pid, {:update, update(Map.put(change, "seqId", 10)), Timex.now()})
+
+      assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+      refute_receive %Quote{}
+      assert %{sequence_id: nil} = :sys.get_state(pid)
+    end)
+  end
+
+  test "accepts lower sequence ids used by maintenance resets", %{pid: pid} do
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+    assert_receive %Quote{}
+
+    GenServer.cast(
+      pid,
+      {:update,
+       update(%{
+         "seqId" => 5,
+         "bids" => [["100", "11", "0", "2"]]
+       }), Timex.now()}
+    )
+
+    assert_receive %Quote{bids: [%PricePoint{price: 100.0, size: 11.0}]}
+    assert %{sequence_id: 5} = :sys.get_state(pid)
+  end
+
   test "clears synchronization and reconnects after an invalid snapshot", %{pid: pid} do
     register_connection()
     GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})

@@ -51,11 +51,18 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
   end
 
   def handle_cast(
-        {:update, %{"prevSeqId" => previous_id, "seqId" => sequence_id} = data, received_at},
+        {:update,
+         %{
+           "prevSeqId" => previous_id,
+           "seqId" => sequence_id,
+           "bids" => bids,
+           "asks" => asks
+         } = data, received_at},
         %{sequence_id: current_id} = state
       )
       when is_integer(previous_id) and previous_id >= 0 and is_integer(sequence_id) and
-             sequence_id >= 0 and is_integer(current_id) and current_id == previous_id do
+             sequence_id >= 0 and is_integer(current_id) and current_id == previous_id and
+             (sequence_id != previous_id or (bids == [] and asks == [])) do
     case build_change_set(data, received_at, state) do
       {:ok, change_set} ->
         OrderBook.apply(change_set)

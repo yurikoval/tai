@@ -52,36 +52,64 @@ defmodule Tai.VenueAdapters.OkEx.Stream.UpdateOrder do
   defp transition_type(_), do: {:error, :invalid_state}
 
   defp transition_attrs(%{"state" => order_state} = msg) do
-    case order_state do
-      @canceled ->
-        {:ok, %{}}
+    with {:ok, venue_order_id} <- venue_order_id(msg) do
+      case order_state do
+        @canceled ->
+          {:ok, %{}}
 
-      state when state in [@pending, @partially_filled] ->
-        with {:ok, venue_order_id} <- Map.fetch(msg, "order_id"),
-             {:ok, raw_size} <- Map.fetch(msg, "size"),
-             {:ok, raw_filled} <- filled(msg),
-             {:ok, size} <- Decimal.cast(raw_size),
-             {:ok, cumulative_qty} <- Decimal.cast(raw_filled) do
-          {:ok,
-           %{
-             venue_order_id: venue_order_id,
-             cumulative_qty: cumulative_qty,
-             leaves_qty: Decimal.sub(size, cumulative_qty)
-           }}
-        else
-          _ -> {:error, :invalid_order}
-        end
+        state when state in [@pending, @partially_filled] ->
+          with {:ok, size, cumulative_qty} <- quantities(msg) do
+            {:ok,
+             %{
+               venue_order_id: venue_order_id,
+               cumulative_qty: cumulative_qty,
+               leaves_qty: Decimal.sub(size, cumulative_qty)
+             }}
+          end
 
-      @fully_filled ->
-        with {:ok, venue_order_id} <- Map.fetch(msg, "order_id"),
-             {:ok, raw_filled} <- filled(msg),
-             {:ok, cumulative_qty} <- Decimal.cast(raw_filled) do
-          {:ok, %{venue_order_id: venue_order_id, cumulative_qty: cumulative_qty}}
-        else
-          _ -> {:error, :invalid_order}
-        end
+        @fully_filled ->
+          with {:ok, _size, cumulative_qty} <- quantities(msg) do
+            {:ok, %{venue_order_id: venue_order_id, cumulative_qty: cumulative_qty}}
+          end
+      end
     end
   end
+
+  defp venue_order_id(msg) do
+    case Map.fetch(msg, "order_id") do
+      {:ok, value} when is_binary(value) and byte_size(value) > 0 ->
+        if String.trim(value) == "", do: {:error, :invalid_order}, else: {:ok, value}
+
+      _ ->
+        {:error, :invalid_order}
+    end
+  end
+
+  defp quantities(msg) do
+    with {:ok, raw_size} <- Map.fetch(msg, "size"),
+         {:ok, raw_filled} <- filled(msg),
+         {:ok, size} <- decimal(raw_size, :positive),
+         {:ok, cumulative_qty} <- decimal(raw_filled, :non_negative),
+         true <- Decimal.compare(cumulative_qty, size) in [:lt, :eq] do
+      {:ok, size, cumulative_qty}
+    else
+      _ -> {:error, :invalid_order}
+    end
+  end
+
+  defp decimal(value, domain) do
+    with {:ok, decimal} <- Decimal.cast(value),
+         false <- Decimal.nan?(decimal),
+         false <- Decimal.inf?(decimal),
+         true <- valid_domain?(decimal, domain) do
+      {:ok, decimal}
+    else
+      _ -> {:error, :invalid_order}
+    end
+  end
+
+  defp valid_domain?(decimal, :positive), do: Decimal.positive?(decimal)
+  defp valid_domain?(decimal, :non_negative), do: not Decimal.negative?(decimal)
 
   defp filled(msg) do
     case Map.fetch(msg, "filled_size") do
