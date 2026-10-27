@@ -1,7 +1,7 @@
 defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
   use Tai.TestSupport.DataCase, async: false
   alias Tai.Markets.{OrderBook, PricePoint, Quote}
-  alias Tai.VenueAdapters.OkEx.Stream.{ProcessOrderBook, PublicConnection}
+  alias Tai.VenueAdapters.OkEx.Stream.{ProcessOrderBook, PublicConnection, RouteOrderBooks}
 
   @product struct(Tai.Venues.Product,
              venue_id: :venue_a,
@@ -15,6 +15,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
     Process.register(self(), @order_book_name)
     start_supervised!(OrderBook.child_spec(@product, @quote_depth, false))
     {:ok, pid} = start_supervised({ProcessOrderBook, @product})
+    start_supervised!({RouteOrderBooks, [venue: @product.venue_id, order_books: [@product]]})
     Tai.Markets.subscribe_quote(@product.venue_id)
 
     %{pid: pid}
@@ -106,13 +107,44 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
     assert %{sequence_id: nil} = :sys.get_state(pid)
   end
 
-  test "clears synchronization after an invalid snapshot", %{pid: pid} do
+  test "clears synchronization and reconnects after an invalid snapshot", %{pid: pid} do
+    register_connection()
     GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
     assert_receive %Quote{}
     assert %{sequence_id: 10} = :sys.get_state(pid)
 
     GenServer.cast(pid, {:snapshot, snapshot(%{"ts" => "invalid"}), Timex.now()})
 
+    assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+    refute_receive %Quote{}
+    assert %{sequence_id: nil} = :sys.get_state(pid)
+  end
+
+  test "requires both book sides and valid numeric domains", %{pid: pid} do
+    register_connection()
+
+    invalid_snapshots = [
+      Map.delete(snapshot(), "asks"),
+      snapshot(%{"bids" => [["0", "10", "0", "1"]]}),
+      snapshot(%{"asks" => [["101", "-1", "0", "1"]]})
+    ]
+
+    Enum.each(invalid_snapshots, fn invalid_snapshot ->
+      GenServer.cast(pid, {:snapshot, invalid_snapshot, Timex.now()})
+      assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+      refute_receive %Quote{}
+      assert %{sequence_id: nil} = :sys.get_state(pid)
+    end)
+  end
+
+  test "invalidates synchronization after a malformed contiguous update", %{pid: pid} do
+    register_connection()
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+    assert_receive %Quote{}
+
+    GenServer.cast(pid, {:update, update(%{"ts" => "invalid"}), Timex.now()})
+
+    assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
     refute_receive %Quote{}
     assert %{sequence_id: nil} = :sys.get_state(pid)
   end
@@ -132,14 +164,17 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
   defp register_connection do
     parent = self()
 
-    connection =
-      spawn(fn ->
-        receive do
-          message -> send(parent, {:connection_message, message})
-        end
-      end)
-
+    connection = spawn(fn -> forward_connection_messages(parent) end)
     Process.register(connection, PublicConnection.process_name(@product.venue_id))
+    on_exit(fn -> if Process.alive?(connection), do: Process.exit(connection, :kill) end)
+  end
+
+  defp forward_connection_messages(parent) do
+    receive do
+      message ->
+        send(parent, {:connection_message, message})
+        forward_connection_messages(parent)
+    end
   end
 
   defp snapshot(overrides \\ %{}) do

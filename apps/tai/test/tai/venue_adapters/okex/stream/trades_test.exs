@@ -3,8 +3,14 @@ defmodule Tai.VenueAdapters.OkEx.Stream.TradesTest do
   import Tai.TestSupport.Assertions.Event
   alias Tai.VenueAdapters.OkEx.Stream.ProcessOptionalChannels
 
+  @product struct(Tai.Venues.Product,
+             venue_id: :my_venue,
+             symbol: :configured_xperp,
+             venue_symbol: "0G-USD_UM_XPERP-310905"
+           )
+
   test "broadcasts the existing Trade event from a V5 public trade" do
-    start_supervised!({ProcessOptionalChannels, [venue: :my_venue]})
+    start_supervised!({ProcessOptionalChannels, [venue: :my_venue, markets: [@product]]})
     TaiEvents.firehose_subscribe()
     received_at = Tai.Time.monotonic_time()
 
@@ -31,7 +37,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.TradesTest do
 
     assert_event(trade = %Tai.Events.Trade{})
     assert trade.venue_id == :my_venue
-    assert trade.symbol == :"0g_usd_um_xperp_310905"
+    assert trade.symbol == :configured_xperp
     assert trade.venue_trade_id == "12345"
     assert trade.received_at == received_at
     assert trade.timestamp == DateTime.from_unix!(1_546_663_177_496, :millisecond)
@@ -41,13 +47,15 @@ defmodule Tai.VenueAdapters.OkEx.Stream.TradesTest do
   end
 
   test "logs and ignores malformed V5 trade payloads" do
-    pid = start_supervised!({ProcessOptionalChannels, [venue: :my_venue]})
+    pid =
+      start_supervised!({ProcessOptionalChannels, [venue: :my_venue, markets: [@product]]})
+
     TaiEvents.firehose_subscribe()
     received_at = Tai.Time.monotonic_time()
 
     GenServer.cast(pid, {
       %{
-        "arg" => %{"channel" => "trades"},
+        "arg" => %{"channel" => "trades", "instId" => @product.venue_symbol},
         "data" => [
           %{},
           %{
@@ -69,5 +77,56 @@ defmodule Tai.VenueAdapters.OkEx.Stream.TradesTest do
     assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
     assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
     assert %ProcessOptionalChannels.State{} = :sys.get_state(pid)
+  end
+
+  test "rejects mismatched, unknown, and invalid-domain trades" do
+    pid =
+      start_supervised!({ProcessOptionalChannels, [venue: :my_venue, markets: [@product]]})
+
+    TaiEvents.firehose_subscribe()
+    received_at = Tai.Time.monotonic_time()
+
+    invalid_records = [
+      valid_trade(%{"instId" => "OTHER"}),
+      valid_trade(%{"tradeId" => ""}),
+      valid_trade(%{"px" => "0"}),
+      valid_trade(%{"px" => "Infinity"}),
+      valid_trade(%{"sz" => "-1"}),
+      valid_trade(%{"ts" => "-1"})
+    ]
+
+    GenServer.cast(pid, {
+      %{
+        "arg" => %{"channel" => "trades", "instId" => @product.venue_symbol},
+        "data" => invalid_records
+      },
+      received_at
+    })
+
+    GenServer.cast(pid, {
+      %{
+        "arg" => %{"channel" => "trades", "instId" => "UNKNOWN"},
+        "data" => [valid_trade(%{"instId" => "UNKNOWN"})]
+      },
+      received_at
+    })
+
+    Enum.each(1..7, fn _ -> assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning) end)
+    refute_event(%Tai.Events.Trade{})
+    assert %ProcessOptionalChannels.State{} = :sys.get_state(pid)
+  end
+
+  defp valid_trade(overrides) do
+    Map.merge(
+      %{
+        "instId" => @product.venue_symbol,
+        "tradeId" => "12345",
+        "px" => "5556.91",
+        "sz" => "5",
+        "side" => "sell",
+        "ts" => "1546663177496"
+      },
+      overrides
+    )
   end
 end

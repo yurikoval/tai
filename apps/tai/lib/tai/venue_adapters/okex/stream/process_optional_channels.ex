@@ -4,20 +4,23 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOptionalChannels do
 
   defmodule State do
     @type venue_id :: Tai.Venue.id()
-    @type t :: %State{venue: venue_id}
+    @type markets :: %{optional(String.t()) => Tai.Venues.Product.t()}
+    @type t :: %State{venue: venue_id, markets: markets}
 
-    @enforce_keys ~w(venue)a
-    defstruct ~w(venue)a
+    @enforce_keys ~w(venue markets)a
+    defstruct ~w(venue markets)a
   end
 
   @type venue_id :: Tai.Venue.id()
+  @type product :: Tai.Venues.Product.t()
   @type state :: State.t()
 
-  @spec start_link(venue: venue_id) :: GenServer.on_start()
-  def start_link(venue: venue) do
-    state = %State{venue: venue}
-    name = venue |> to_name()
-    GenServer.start_link(__MODULE__, state, name: name)
+  @spec start_link(venue: venue_id, markets: [product]) :: GenServer.on_start()
+  def start_link(opts) do
+    venue = Keyword.fetch!(opts, :venue)
+    markets = opts |> Keyword.get(:markets, []) |> Map.new(&{&1.venue_symbol, &1})
+    state = %State{venue: venue, markets: markets}
+    GenServer.start_link(__MODULE__, state, name: to_name(venue))
   end
 
   @spec to_name(venue_id) :: atom
@@ -31,11 +34,18 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOptionalChannels do
 
   @impl true
   def handle_cast(
-        {%{"arg" => %{"channel" => "trades"}, "data" => data}, received_at},
+        {%{"arg" => %{"channel" => "trades", "instId" => instrument_id}, "data" => data},
+         received_at},
         state
       )
-      when is_list(data) do
-    Enum.each(data, &Stream.Trades.broadcast(&1, state.venue, received_at))
+      when is_binary(instrument_id) and is_list(data) do
+    product = Map.get(state.markets, instrument_id)
+
+    Enum.each(
+      data,
+      &Stream.Trades.broadcast(&1, instrument_id, product, state.venue, received_at)
+    )
+
     {:noreply, state}
   end
 

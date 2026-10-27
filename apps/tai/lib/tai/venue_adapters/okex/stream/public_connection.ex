@@ -71,18 +71,19 @@ defmodule Tai.VenueAdapters.OkEx.Stream.PublicConnection do
   end
 
   @impl true
+  def on_disconnect(_conn_status, state) do
+    Stream.RouteOrderBooks.reset(state.venue)
+    {:ok, state}
+  end
+
+  @impl true
   def on_msg(
-        %{"action" => action, "arg" => %{"channel" => "books"}, "data" => _data} = msg,
+        %{"action" => action, "arg" => %{"channel" => "books"}} = msg,
         received_at,
         state
       )
       when action in ["snapshot", "update"] do
     forward(msg, :markets, received_at, state)
-    {:ok, state}
-  end
-
-  def on_msg(%{"arg" => %{"channel" => "trades"}} = msg, received_at, state) do
-    forward(msg, :optional_channels, received_at, state)
     {:ok, state}
   end
 

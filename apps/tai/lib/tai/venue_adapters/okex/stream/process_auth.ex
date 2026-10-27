@@ -48,16 +48,21 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth do
 
   defp process_order(%{"client_oid" => venue_client_id} = msg, received_at, state)
        when is_binary(venue_client_id) do
-    try do
-      venue_client_id
-      |> ClientId.from_base32()
-      |> Stream.UpdateOrder.apply(msg, received_at, state)
-    rescue
-      _ -> warn_unhandled(msg, received_at, state)
+    case decode_client_id(venue_client_id) do
+      {:ok, client_id} -> Stream.UpdateOrder.apply(client_id, msg, received_at, state)
+      :error -> warn_unhandled(msg, received_at, state)
     end
   end
 
   defp process_order(msg, received_at, state), do: warn_unhandled(msg, received_at, state)
+
+  defp decode_client_id(venue_client_id) do
+    try do
+      {:ok, ClientId.from_base32(venue_client_id)}
+    rescue
+      _ in [ArgumentError, MatchError] -> :error
+    end
+  end
 
   defp warn_unhandled(msg, received_at, state) do
     TaiEvents.warning(%Tai.Events.StreamMessageUnhandled{

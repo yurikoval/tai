@@ -39,7 +39,7 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisor do
     system = [
       {RouteOrderBooks, [venue: stream.venue.id, order_books: stream.markets]},
       {ProcessAuth, [venue: stream.venue.id]},
-      {ProcessOptionalChannels, [venue: stream.venue.id]},
+      {ProcessOptionalChannels, [venue: stream.venue.id, markets: stream.markets]},
       {PublicConnection, [endpoint: public_endpoint(), stream: stream]}
     ]
 

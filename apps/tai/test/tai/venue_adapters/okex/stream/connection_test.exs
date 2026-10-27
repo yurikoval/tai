@@ -26,6 +26,14 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ConnectionTest do
            }
   end
 
+  test "consumes legacy private subscription acknowledgements" do
+    state = state()
+    acknowledgement = %{"event" => "subscribe", "channel" => "futures/order"}
+
+    assert {:ok, ^state} = Connection.on_msg(acknowledgement, 123, state)
+    refute_receive {:"$gen_cast", _}
+  end
+
   test "routes legacy private order messages to the auth processor" do
     state = state()
     msg = %{"table" => "futures/order", "data" => []}

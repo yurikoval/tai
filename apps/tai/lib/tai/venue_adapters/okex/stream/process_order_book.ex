@@ -1,7 +1,7 @@
 defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
   use GenServer
   alias Tai.Markets.OrderBook
-  alias Tai.VenueAdapters.OkEx.Stream.PublicConnection
+  alias Tai.VenueAdapters.OkEx.Stream.RouteOrderBooks
 
   defmodule State do
     @type venue :: Tai.Venue.id()
@@ -39,14 +39,12 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
         {:noreply, %{state | sequence_id: sequence_id}}
 
       {:error, reason} ->
-        warn(reason, state)
-        {:noreply, %{state | sequence_id: nil}}
+        {:noreply, invalidate(reason, state)}
     end
   end
 
   def handle_cast({:snapshot, _data, _received_at}, state) do
-    warn(:invalid_order_book_message, state)
-    {:noreply, %{state | sequence_id: nil}}
+    {:noreply, invalidate(:invalid_order_book_message, state)}
   end
 
   def handle_cast(
@@ -61,8 +59,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
         {:noreply, %{state | sequence_id: sequence_id}}
 
       {:error, reason} ->
-        warn(reason, state)
-        {:noreply, state}
+        {:noreply, invalidate(reason, state)}
     end
   end
 
@@ -73,20 +70,21 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
       sequence: Map.get(data, "seqId")
     }
 
-    warn({:sequence_gap, gap}, state)
-    PublicConnection.reconnect(state.venue)
-    {:noreply, %{state | sequence_id: nil}}
+    {:noreply, invalidate({:sequence_gap, gap}, state)}
   end
 
+  def handle_cast(:reset, state), do: {:noreply, %{state | sequence_id: nil}}
+
   def handle_cast({_action, _data, _received_at}, state) do
-    warn(:invalid_order_book_message, state)
-    {:noreply, state}
+    {:noreply, invalidate(:invalid_order_book_message, state)}
   end
 
   defp build_change_set(data, received_at, state) do
-    with {:ok, venue_timestamp} <- parse_timestamp(Map.get(data, "ts")),
-         {:ok, bids} <- normalize_side(Map.get(data, "bids", []), :bid),
-         {:ok, asks} <- normalize_side(Map.get(data, "asks", []), :ask) do
+    with {:ok, raw_bids} <- fetch_side(data, "bids"),
+         {:ok, raw_asks} <- fetch_side(data, "asks"),
+         {:ok, venue_timestamp} <- parse_timestamp(Map.get(data, "ts")),
+         {:ok, bids} <- normalize_side(raw_bids, :bid),
+         {:ok, asks} <- normalize_side(raw_asks, :ask) do
       {:ok,
        %OrderBook.ChangeSet{
          venue: state.venue,
@@ -98,9 +96,16 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
     end
   end
 
+  defp fetch_side(data, side) do
+    case Map.fetch(data, side) do
+      {:ok, levels} -> {:ok, levels}
+      :error -> {:error, :missing_side}
+    end
+  end
+
   defp parse_timestamp(timestamp) when is_binary(timestamp) do
     case Integer.parse(timestamp) do
-      {milliseconds, ""} -> DateTime.from_unix(milliseconds, :millisecond)
+      {milliseconds, ""} when milliseconds >= 0 -> DateTime.from_unix(milliseconds, :millisecond)
       _ -> {:error, :invalid_timestamp}
     end
   end
@@ -110,10 +115,9 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
   defp normalize_side(levels, side) when is_list(levels) do
     levels
     |> Enum.reduce_while({:ok, []}, fn
-      [raw_price, raw_size, _ignored, _count], {:ok, changes}
-      when is_binary(raw_price) and is_binary(raw_size) ->
-        with {price, ""} <- Float.parse(raw_price),
-             {size, ""} <- Float.parse(raw_size) do
+      [raw_price, raw_size, _ignored, _count], {:ok, changes} ->
+        with {:ok, price} <- decimal_to_float(raw_price, :positive),
+             {:ok, size} <- decimal_to_float(raw_size, :non_negative) do
           change =
             if size == 0.0,
               do: {:delete, side, price},
@@ -134,6 +138,30 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
   end
 
   defp normalize_side(_levels, _side), do: {:error, :invalid_levels}
+
+  defp decimal_to_float(value, domain) do
+    with {:ok, decimal} <- Decimal.cast(value),
+         false <- Decimal.nan?(decimal),
+         false <- Decimal.inf?(decimal),
+         true <- valid_domain?(decimal, domain) do
+      try do
+        {:ok, Decimal.to_float(decimal)}
+      rescue
+        _ in [ArgumentError, Decimal.Error] -> {:error, :invalid_level}
+      end
+    else
+      _ -> {:error, :invalid_level}
+    end
+  end
+
+  defp valid_domain?(decimal, :positive), do: Decimal.positive?(decimal)
+  defp valid_domain?(decimal, :non_negative), do: not Decimal.negative?(decimal)
+
+  defp invalidate(reason, state) do
+    warn(reason, state)
+    RouteOrderBooks.reset_and_reconnect(state.venue)
+    %{state | sequence_id: nil}
+  end
 
   defp warn(reason, state) do
     TaiEvents.warning(%Tai.Events.StreamError{

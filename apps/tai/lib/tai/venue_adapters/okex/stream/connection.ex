@@ -67,6 +67,8 @@ defmodule Tai.VenueAdapters.OkEx.Stream.Connection do
   end
 
   @impl true
+  def on_msg(%{"event" => "subscribe"}, _received_at, state), do: {:ok, state}
+
   def on_msg(msg, received_at, state) do
     forward(msg, received_at, state)
     {:ok, state}

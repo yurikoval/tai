@@ -1,7 +1,8 @@
 defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth.OrdersTest do
   use Tai.TestSupport.DataCase, async: false
+  import Mock
   import Tai.TestSupport.Assertions.Event
-  alias Tai.VenueAdapters.OkEx.Stream.ProcessAuth
+  alias Tai.VenueAdapters.OkEx.Stream.{ProcessAuth, UpdateOrder}
   alias Tai.VenueAdapters.OkEx.ClientId
   alias Tai.Orders
 
@@ -182,6 +183,30 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth.OrdersTest do
     })
 
     assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
+  end
+
+  test "does not swallow internal order update failures" do
+    msg = %{
+      "table" => "futures/order",
+      "data" => [build_venue_order(%{"state" => "-1"})]
+    }
+
+    with_mock UpdateOrder,
+      apply: fn _client_id, _msg, _received_at, _state -> raise "failure" end do
+      assert_raise RuntimeError, "failure", fn ->
+        ProcessAuth.handle_cast({msg, @received_at}, %ProcessAuth.State{venue: @venue})
+      end
+    end
+  end
+
+  test "logs invalid private order timestamps without crashing" do
+    cast_order_msg(%{
+      "table" => "futures/order",
+      "data" => [build_venue_order(%{"state" => "-1", "timestamp" => "invalid"})]
+    })
+
+    assert_event(%Tai.Events.StreamMessageUnhandled{}, :warning)
+    assert %ProcessAuth.State{} = :sys.get_state(ProcessAuth.process_name(@venue))
   end
 
   test "logs and ignores malformed private order payloads" do

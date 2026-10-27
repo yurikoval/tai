@@ -1,8 +1,6 @@
 defmodule Tai.VenueAdapters.OkEx.Stream.Trades do
-  import Tai.VenueAdapters.OkEx.Products, only: [to_symbol: 1]
-
-  def broadcast(msg, venue_id, received_at) do
-    case build_event(msg, venue_id, received_at) do
+  def broadcast(msg, envelope_instrument_id, product, venue_id, received_at) do
+    case build_event(msg, envelope_instrument_id, product, venue_id, received_at) do
       {:ok, event} ->
         TaiEvents.info(event)
 
@@ -24,18 +22,22 @@ defmodule Tai.VenueAdapters.OkEx.Stream.Trades do
            "ts" => timestamp,
            "tradeId" => venue_trade_id
          },
+         envelope_instrument_id,
+         %Tai.Venues.Product{venue_symbol: instrument_id, symbol: symbol},
          venue_id,
          received_at
        )
-       when is_binary(instrument_id) and is_binary(venue_trade_id) do
-    with {:ok, price} <- Decimal.cast(price),
-         {:ok, size} <- Decimal.cast(size),
+       when instrument_id == envelope_instrument_id do
+    with true <- nonempty?(instrument_id),
+         true <- nonempty?(venue_trade_id),
+         {:ok, price} <- positive_decimal(price),
+         {:ok, size} <- positive_decimal(size),
          {:ok, side} <- normalize_side(side),
          {:ok, timestamp} <- normalize_timestamp(timestamp) do
       {:ok,
        %Tai.Events.Trade{
          venue_id: venue_id,
-         symbol: to_symbol(instrument_id),
+         symbol: symbol,
          received_at: received_at,
          timestamp: timestamp,
          price: price,
@@ -48,7 +50,20 @@ defmodule Tai.VenueAdapters.OkEx.Stream.Trades do
     end
   end
 
-  defp build_event(_, _, _), do: :error
+  defp build_event(_, _, _, _, _), do: :error
+
+  defp nonempty?(value), do: is_binary(value) and String.trim(value) != ""
+
+  defp positive_decimal(value) do
+    with {:ok, decimal} <- Decimal.cast(value),
+         false <- Decimal.nan?(decimal),
+         false <- Decimal.inf?(decimal),
+         true <- Decimal.positive?(decimal) do
+      {:ok, decimal}
+    else
+      _ -> :error
+    end
+  end
 
   defp normalize_side("buy"), do: {:ok, :buy}
   defp normalize_side("sell"), do: {:ok, :sell}
@@ -56,7 +71,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.Trades do
 
   defp normalize_timestamp(timestamp) when is_binary(timestamp) do
     case Integer.parse(timestamp) do
-      {milliseconds, ""} -> DateTime.from_unix(milliseconds, :millisecond)
+      {milliseconds, ""} when milliseconds >= 0 -> DateTime.from_unix(milliseconds, :millisecond)
       _ -> :error
     end
   end

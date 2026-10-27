@@ -1,6 +1,6 @@
 defmodule Tai.VenueAdapters.OkEx.Stream.RouteOrderBooksTest do
   use ExUnit.Case, async: false
-  alias Tai.VenueAdapters.OkEx.Stream.{ProcessOrderBook, RouteOrderBooks}
+  alias Tai.VenueAdapters.OkEx.Stream.{ProcessOrderBook, PublicConnection, RouteOrderBooks}
 
   @venue :venue_a
   @venue_symbol "BTC-USD-SWAP"
@@ -42,18 +42,54 @@ defmodule Tai.VenueAdapters.OkEx.Stream.RouteOrderBooksTest do
     assert_receive {:"$gen_cast", {:update, ^data, @received_at}}
   end
 
-  test "ignores malformed and unknown product messages without crashing", %{pid: pid} do
-    GenServer.cast(pid, {%{"arg" => %{"channel" => "books"}}, @received_at})
+  test "resets every book and reconnects after malformed snapshot envelopes", %{pid: pid} do
+    register_connection()
 
-    GenServer.cast(
-      pid,
-      {%{
-         "arg" => %{"channel" => "books", "instId" => "UNKNOWN"},
-         "action" => "snapshot",
-         "data" => [%{}]
-       }, @received_at}
-    )
+    messages = [
+      %{
+        "arg" => %{"channel" => "books", "instId" => @venue_symbol},
+        "action" => "snapshot",
+        "data" => []
+      },
+      %{
+        "arg" => %{"channel" => "books", "instId" => @venue_symbol},
+        "action" => "snapshot"
+      },
+      %{
+        "arg" => %{"channel" => "books", "instId" => @venue_symbol},
+        "action" => "snapshot",
+        "data" => [%{}, %{}]
+      }
+    ]
+
+    Enum.each(messages, fn msg ->
+      GenServer.cast(pid, {msg, @received_at})
+      assert_receive {:"$gen_cast", :reset}
+      assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+    end)
 
     assert %RouteOrderBooks.State{} = :sys.get_state(pid)
+  end
+
+  test "resets books when the public connection is replaced", %{pid: pid} do
+    assert {:ok, %{venue: @venue}} = PublicConnection.on_disconnect(%{}, %{venue: @venue})
+    assert_receive {:"$gen_cast", :reset}
+    assert %RouteOrderBooks.State{} = :sys.get_state(pid)
+  end
+
+  defp register_connection do
+    parent = self()
+
+    connection = spawn(fn -> forward_connection_messages(parent) end)
+    Process.register(connection, PublicConnection.process_name(@venue))
+    on_exit(fn -> if Process.alive?(connection), do: Process.exit(connection, :kill) end)
+  end
+
+  defp forward_connection_messages(parent) do
+    receive do
+      message ->
+        send(parent, {:connection_message, message})
+        forward_connection_messages(parent)
+    end
   end
 end
