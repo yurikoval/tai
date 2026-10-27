@@ -52,6 +52,66 @@ defmodule Tai.VenuesAdapters.Deribit.ProductTest do
       assert product.expiry == nil
     end
 
+    test "maps vanilla options" do
+      for {suffix, option_type} <- [{"C", :call}, {"P", :put}] do
+        assert {:ok, product} =
+                 build(%{
+                   kind: "option",
+                   instrument_name: "BTC-25SEP20-10000-#{suffix}",
+                   quote_currency: "BTC",
+                   option_type: Atom.to_string(option_type),
+                   strike: 10_000.0,
+                   contract_size: 1.0
+                 })
+
+        assert product.type == :option
+        assert product.payoff_type == :vanilla
+        assert product.option_type == option_type
+        assert product.strike == Decimal.new("1E+4")
+        assert product.value == Decimal.new("1")
+        assert product.value_side == :base
+        assert product.quote == :btc
+        assert DateTime.compare(product.expiry, ~U[2020-09-25 08:00:00Z]) == :eq
+      end
+    end
+
+    test "rejects malformed option metadata" do
+      assert {:error, {:invalid_instrument, {:option_type, "binary"}}} =
+               build(%{
+                 kind: "option",
+                 instrument_name: "BTC-25SEP20-10000-C",
+                 quote_currency: "BTC",
+                 option_type: "binary"
+               })
+
+      assert {:error, {:invalid_instrument, {:strike, 0}}} =
+               build(%{
+                 kind: "option",
+                 instrument_name: "BTC-25SEP20-10000-C",
+                 quote_currency: "BTC",
+                 option_type: "call",
+                 strike: 0
+               })
+
+      assert {:error, {:invalid_instrument, {:option_type, "put"}}} =
+               build(%{
+                 kind: "option",
+                 instrument_name: "BTC-25SEP20-10000-C",
+                 quote_currency: "BTC",
+                 option_type: "put",
+                 strike: 10_000
+               })
+
+      assert {:error, {:invalid_instrument, {:strike, 11_000}}} =
+               build(%{
+                 kind: "option",
+                 instrument_name: "BTC-25SEP20-10000-C",
+                 quote_currency: "BTC",
+                 option_type: "call",
+                 strike: 11_000
+               })
+    end
+
     test "only active open instruments are trading" do
       assert {:ok, locked} = build(%{state: "locked"})
       assert locked.status == :halt
@@ -73,9 +133,6 @@ defmodule Tai.VenuesAdapters.Deribit.ProductTest do
 
       assert {:error, {:unsupported_instrument, {:kind, "future_combo"}}} =
                build(%{kind: "future_combo"})
-
-      assert {:error, {:unsupported_instrument, {:kind, "option"}}} =
-               build(%{kind: "option", option_type: "call", strike: 10_000.0})
 
       assert {:error, {:unsupported_instrument, {:contract, "linear", "BTC", "USD", "USDC"}}} =
                build(%{instrument_type: "linear", settlement_currency: "USDC"})

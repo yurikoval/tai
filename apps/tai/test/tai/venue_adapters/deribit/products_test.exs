@@ -28,6 +28,15 @@ defmodule Tai.VenueAdapters.Deribit.ProductsTest do
     instruments = [
       instrument(),
       instrument(%{
+        instrument_name: "BTC-25SEP20-10000-C",
+        quote_currency: "BTC",
+        kind: "option",
+        option_type: "call",
+        strike: 10_000,
+        contract_size: 1,
+        expiration_timestamp: 1_601_020_800_000
+      }),
+      instrument(%{
         instrument_name: "AAVE_USDC",
         base_currency: "AAVE",
         quote_currency: "USDC",
@@ -42,9 +51,12 @@ defmodule Tai.VenueAdapters.Deribit.ProductsTest do
       capture_log(fn ->
         with_mock ExDeribit.MarketData.Instruments,
           get: fn "any", %{expired: false} -> {:ok, instruments} end do
-          assert {:ok, [product]} = Products.products(:deribit)
-          assert product.symbol == :btc_perpetual
-          assert product.expiry == nil
+          assert {:ok, [perpetual, option]} = Products.products(:deribit)
+          assert perpetual.symbol == :btc_perpetual
+          assert perpetual.expiry == nil
+          assert option.symbol == :btc_25sep20_10000_c
+          assert option.type == :option
+          assert option.payoff_type == :vanilla
           assert called(ExDeribit.MarketData.Instruments.get("any", %{expired: false}))
         end
       end)
@@ -54,7 +66,7 @@ defmodule Tai.VenueAdapters.Deribit.ProductsTest do
   end
 
   test "returns an error when the catalogue contains no supported products" do
-    instruments = [instrument(%{kind: "option"}), instrument(%{kind: "spot"})]
+    instruments = [instrument(%{kind: "spot"})]
 
     with_mock ExDeribit.MarketData.Instruments,
       get: fn "any", %{expired: false} -> {:ok, instruments} end do
