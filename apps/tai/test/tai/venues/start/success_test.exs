@@ -97,4 +97,18 @@ defmodule Tai.Venues.Start.SuccessTest do
 
     refute_event(%Tai.Events.VenueStartError{}, :error)
   end
+
+  test "hydrates venue data without starting a stream when no markets are selected" do
+    Tai.SystemBus.subscribe({:venue, :start})
+    venue = %{@venue | market_streams: ""}
+
+    start_supervised!({Tai.Venues.Start, venue})
+
+    assert_receive {{:venue, :start}, started_venue}
+    assert started_venue == venue.id
+    assert Enum.count(Tai.Venues.ProductStore.all()) == 2
+
+    assert %{active: 0, supervisors: 0} =
+             DynamicSupervisor.count_children(Tai.Venues.StreamsSupervisor)
+  end
 end
