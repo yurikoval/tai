@@ -11,6 +11,7 @@ defmodule ExOkex.Mixfile do
       deps: deps(),
       docs: docs(),
       package: package(),
+      elixirc_paths: elixirc_paths(Mix.env()),
       name: "ExOkex",
       description: "OKEx API client for Elixir",
       source_url: "https://github.com/yurikoval/ex_okex"
@@ -35,6 +36,9 @@ defmodule ExOkex.Mixfile do
       {:dialyxir, "~> 1.1.0", only: :dev, runtime: false}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp docs do
     [

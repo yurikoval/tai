@@ -135,6 +135,22 @@ ExOkex.Futures.create_bulk_orders(
 
 ## Usage
 
+### Public instruments
+
+Public SPOT, SWAP, and FUTURES metadata uses the OKX V5 instruments endpoint:
+
+```elixir
+{:ok, instruments} = ExOkex.Public.instruments("SPOT")
+```
+
+The public client defaults to `https://www.okx.com`. Set `:public_api_url` for a proxy or sandbox; when it is unset, an existing `:api_url` override is reused:
+
+```elixir
+config :ex_okex, public_api_url: "https://okx-proxy.example"
+```
+
+### Private orders
+
 Place a limit order
 
 ```elixir
@@ -185,7 +201,9 @@ end
 
 [Full Documentation](https://hexdocs.pm/ex_okex/ExOkex.html)
 
-[OKEX API Docs](https://www.okex.com/docs/)
+[OKX V5 Public API Docs](https://www.okx.com/docs-v5/en/#public-data-rest-api)
+
+[Legacy OKEx API Docs](https://www.okex.com/docs/)
 
 ## License
 

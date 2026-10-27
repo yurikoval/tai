@@ -23,7 +23,7 @@ defmodule Tai.Venues.Adapters.ProductsTest do
       setup_adapter(@venue.id)
 
       use_cassette "venue_adapters/shared/products/#{@venue.id}/success",
-        match_requests_on: [:request_body] do
+        match_requests_on: match_requests_on(@venue.id) do
         assert {:ok, products} = Tai.Venues.Client.products(@venue)
         assert Enum.count(products) > 0
         assert [%Tai.Venues.Product{} = product | _] = products
@@ -37,6 +37,9 @@ defmodule Tai.Venues.Adapters.ProductsTest do
       end
     end
   end)
+
+  defp match_requests_on(:okex), do: [:query]
+  defp match_requests_on(_venue_id), do: [:request_body]
 
   def setup_adapter(:mock) do
     Tai.TestSupport.Mocks.Responses.Products.for_venue(

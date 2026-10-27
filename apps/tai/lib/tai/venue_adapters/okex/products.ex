@@ -1,10 +1,10 @@
 defmodule Tai.VenueAdapters.OkEx.Products do
-  alias ExOkex.{Futures, Swap, Spot}
+  alias ExOkex.Public
 
   def products(venue_id) do
-    with {:ok, future_instruments} <- Futures.Public.instruments(),
-         {:ok, swap_instruments} <- Swap.Public.instruments(),
-         {:ok, spot_instruments} <- Spot.Public.instruments() do
+    with {:ok, future_instruments} <- Public.instruments("FUTURES"),
+         {:ok, swap_instruments} <- Public.instruments("SWAP"),
+         {:ok, spot_instruments} <- Public.instruments("SPOT") do
       future_products =
         future_instruments |> Enum.map(&Tai.VenueAdapters.OkEx.Product.build(&1, venue_id))
 
