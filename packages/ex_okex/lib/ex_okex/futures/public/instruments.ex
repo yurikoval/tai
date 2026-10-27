@@ -1,4 +1,6 @@
 defmodule ExOkex.Futures.Public.Instruments do
+  @moduledoc false
+
   alias ExOkex.{Config, Public}
   alias ExOkex.Public.Instrument
 

@@ -1,6 +1,8 @@
 defmodule ExOkex.Public do
   @moduledoc """
-  Public OKX V5 API.
+  Public OKX V5 instruments API for SPOT, SWAP, and FUTURES.
+
+  Instrument rows that cannot be safely normalized are omitted from successful responses.
 
   https://www.okx.com/docs-v5/en/#public-data-rest-api-get-instruments
   """

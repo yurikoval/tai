@@ -1,5 +1,6 @@
 defmodule Tai.VenueAdapters.OkEx.Product do
   alias ExOkex.Public.Instrument
+  alias Tai.Utils.Decimal
 
   @spec build(Instrument.t(), Tai.Venue.id()) :: Tai.Venues.Product.t()
   def build(%Instrument{} = instrument, venue_id) do
@@ -127,13 +128,13 @@ defmodule Tai.VenueAdapters.OkEx.Product do
     venue_size_increment = Keyword.fetch!(args, :venue_size_increment)
 
     symbol = to_symbol(venue_symbol)
-    price_increment = args |> Keyword.fetch!(:venue_price_increment) |> Tai.Utils.Decimal.cast!()
-    size_increment = venue_size_increment |> Tai.Utils.Decimal.cast!()
+    price_increment = args |> Keyword.fetch!(:venue_price_increment) |> Decimal.cast!()
+    size_increment = Decimal.cast!(venue_size_increment)
 
     min_size =
-      args |> Keyword.get(:venue_min_size, venue_size_increment) |> Tai.Utils.Decimal.cast!()
+      args |> Keyword.get(:venue_min_size, venue_size_increment) |> Decimal.cast!()
 
-    value = args |> Keyword.fetch!(:value) |> Tai.Utils.Decimal.cast!()
+    value = args |> Keyword.fetch!(:value) |> Decimal.cast!()
     value_side = Keyword.fetch!(args, :value_side)
     listing = Keyword.get(args, :listing)
     expiry = Keyword.get(args, :expiry)
