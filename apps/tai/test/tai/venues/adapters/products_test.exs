@@ -34,11 +34,16 @@ defmodule Tai.Venues.Adapters.ProductsTest do
         assert %Decimal{} = product.min_price
         assert %Decimal{} = product.size_increment
         assert %Decimal{} = product.price_increment
+
+        if @venue.id == :deribit do
+          assert product.expiry == nil
+        end
       end
     end
   end)
 
   defp match_requests_on(:okex), do: [:query]
+  defp match_requests_on(:deribit), do: [:query, :request_body]
   defp match_requests_on(_venue_id), do: [:request_body]
 
   def setup_adapter(:mock) do

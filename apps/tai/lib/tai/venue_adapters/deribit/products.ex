@@ -1,25 +1,36 @@
 defmodule Tai.VenueAdapters.Deribit.Products do
-  def products(venue_id) do
-    with {:ok, currencies} <- ExDeribit.MarketData.Currencies.get(),
-         {:ok, instruments} <- fetch_instruments(currencies) do
-      products =
-        instruments
-        |> Enum.map(&Tai.VenueAdapters.Deribit.Product.build(&1, venue_id))
+  require Logger
 
-      {:ok, products}
+  alias Tai.VenueAdapters.Deribit.Product
+
+  @instrument_options %{expired: false}
+
+  def products(venue_id) do
+    with {:ok, instruments} <- ExDeribit.MarketData.Instruments.get("any", @instrument_options) do
+      products = build_products(instruments, venue_id)
+
+      case products do
+        [] -> {:error, :no_supported_instruments}
+        products -> {:ok, products}
+      end
     end
   end
 
-  defp fetch_instruments(currencies) do
-    currencies
-    |> Enum.reduce(
-      {:ok, []},
-      fn c, {:ok, existing_instruments} ->
-        with {:ok, currency_instruments} <-
-               ExDeribit.MarketData.Instruments.get(c.currency) do
-          {:ok, existing_instruments ++ currency_instruments}
-        end
+  defp build_products(instruments, venue_id) do
+    instruments
+    |> Enum.reduce([], fn instrument, products ->
+      case Product.build(instrument, venue_id) do
+        {:ok, product} ->
+          [product | products]
+
+        {:error, reason} ->
+          Logger.warning(
+            "Deribit ignored instrument #{inspect(instrument.instrument_name)}: #{inspect(reason)}"
+          )
+
+          products
       end
-    )
+    end)
+    |> Enum.reverse()
   end
 end

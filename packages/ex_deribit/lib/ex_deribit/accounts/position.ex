@@ -20,4 +20,6 @@ defmodule ExDeribit.Accounts.Position do
     venue_position
     |> Mapail.map_to_struct(ExDeribit.Position)
   end
+
+  defp parse_response({:error, _reason} = error), do: error
 end

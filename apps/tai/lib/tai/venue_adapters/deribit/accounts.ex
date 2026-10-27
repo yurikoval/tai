@@ -32,15 +32,11 @@ defmodule Tai.VenueAdapters.Deribit.Accounts do
     as: :from
 
   defp fetch_summaries(currencies, venue_credentials) do
-    currencies
-    |> Enum.reduce(
-      {:ok, []},
-      fn c, {:ok, existing_summaries} ->
-        with {:ok, currency_summary} <-
-               ExDeribit.Accounts.Summary.get(venue_credentials, c.currency) do
-          {:ok, existing_summaries ++ [currency_summary]}
-        end
+    Enum.reduce_while(currencies, {:ok, []}, fn currency, {:ok, summaries} ->
+      case ExDeribit.Accounts.Summary.get(venue_credentials, currency.currency) do
+        {:ok, summary} -> {:cont, {:ok, summaries ++ [summary]}}
+        {:error, _reason} = error -> {:halt, error}
       end
-    )
+    end)
   end
 end

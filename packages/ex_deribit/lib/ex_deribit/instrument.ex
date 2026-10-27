@@ -12,13 +12,16 @@ defmodule ExDeribit.Instrument do
           leverage: number,
           kind: String.t(),
           is_active: boolean,
+          state: String.t(),
           instrument_name: name,
           expiration_timestamp: pos_integer,
           creation_timestamp: pos_integer,
           contract_size: pos_integer,
           base_currency: String.t(),
           strike: number | nil,
-          option_type: String.t() | nil
+          option_type: String.t() | nil,
+          instrument_type: String.t() | nil,
+          settlement_currency: String.t() | nil
         }
 
   defstruct ~w(
@@ -31,6 +34,7 @@ defmodule ExDeribit.Instrument do
     leverage
     kind
     is_active
+    state
     instrument_name
     expiration_timestamp
     creation_timestamp
@@ -38,5 +42,7 @@ defmodule ExDeribit.Instrument do
     base_currency
     strike
     option_type
+    instrument_type
+    settlement_currency
   )a
 end

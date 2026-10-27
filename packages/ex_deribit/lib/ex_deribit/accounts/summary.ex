@@ -18,4 +18,6 @@ defmodule ExDeribit.Accounts.Summary do
   defp parse_response({:ok, %ExDeribit.JsonRpcResponse{result: venue_summary}}) do
     Mapail.map_to_struct(venue_summary, ExDeribit.AccountSummary)
   end
+
+  defp parse_response({:error, _reason} = error), do: error
 end

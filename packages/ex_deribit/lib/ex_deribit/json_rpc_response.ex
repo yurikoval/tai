@@ -4,8 +4,9 @@ defmodule ExDeribit.JsonRpcResponse do
   @type t :: %JsonRpcResponse{
           id: pos_integer,
           jsonrpc: String.t(),
-          result: map | list
+          result: term,
+          error: map | nil
         }
 
-  defstruct ~w(id jsonrpc result)a
+  defstruct ~w(id jsonrpc result error)a
 end

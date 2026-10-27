@@ -113,11 +113,33 @@ defmodule ExDeribit.HTTPClient do
   defp normalize_http_method(:delete), do: "DELETE"
 
   defp parse_response({:ok, %HTTPoison.Response{status_code: 200, body: body}}) do
-    {:ok, json} = Jason.decode(body)
-
-    {:ok, rpc_response} =
-      Mapail.map_to_struct(json, ExDeribit.JsonRpcResponse, transformations: [:snake_case])
-
-    {:ok, rpc_response}
+    with {:ok, json} <- Jason.decode(body),
+         {:ok, rpc_response} <- parse_json_rpc(json) do
+      {:ok, rpc_response}
+    else
+      {:error, %Jason.DecodeError{}} -> {:error, :invalid_json}
+      {:error, reason} -> {:error, reason}
+    end
   end
+
+  defp parse_response({:ok, %HTTPoison.Response{status_code: status, body: body}}) do
+    {:error, {:http_error, status, body}}
+  end
+
+  defp parse_response({:error, reason}), do: {:error, {:http_error, reason}}
+
+  defp parse_json_rpc(%{"jsonrpc" => "2.0", "error" => error}) when is_map(error) do
+    {:error, {:api_error, error}}
+  end
+
+  defp parse_json_rpc(%{"jsonrpc" => "2.0", "result" => result} = response) do
+    {:ok,
+     %ExDeribit.JsonRpcResponse{
+       id: response["id"],
+       jsonrpc: response["jsonrpc"],
+       result: result
+     }}
+  end
+
+  defp parse_json_rpc(_), do: {:error, :invalid_json_rpc_response}
 end
