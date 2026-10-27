@@ -51,8 +51,9 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth do
     case decode_client_id(venue_client_id) do
       {:ok, client_id} ->
         case Stream.UpdateOrder.apply(client_id, msg, received_at, state) do
+          :ok -> :ok
+          {:ok, _order} -> :ok
           {:error, reason} -> warn_update_error(client_id, reason, state)
-          _result -> :ok
         end
 
       :error ->
@@ -73,7 +74,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth do
   defp warn_update_error(client_id, reason, state) do
     TaiEvents.warning(%Tai.Events.StreamError{
       venue_id: state.venue,
-      reason: {:order_update, client_id, reason}
+      reason: {:order_update_failed, client_id, reason}
     })
   end
 

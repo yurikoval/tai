@@ -242,7 +242,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessAuth.OrdersTest do
       assert_event(
         %Tai.Events.StreamError{
           venue_id: @venue,
-          reason: {:order_update, ^client_id, :order_not_found}
+          reason: {:order_update_failed, ^client_id, :order_not_found}
         },
         :warning
       )
