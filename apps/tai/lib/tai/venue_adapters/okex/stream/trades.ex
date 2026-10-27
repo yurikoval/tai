@@ -1,50 +1,27 @@
 defmodule Tai.VenueAdapters.OkEx.Stream.Trades do
   import Tai.VenueAdapters.OkEx.Products, only: [to_symbol: 1]
+  alias Tai.Utils.Decimal
 
   def broadcast(
         %{
-          "instrument_id" => instrument_id,
-          "price" => price,
-          "qty" => qty,
+          "instId" => instrument_id,
+          "px" => price,
+          "sz" => size,
           "side" => side,
-          "timestamp" => timestamp,
-          "trade_id" => venue_trade_id
+          "ts" => timestamp,
+          "tradeId" => venue_trade_id
         },
         venue_id,
         received_at
       ) do
     TaiEvents.info(%Tai.Events.Trade{
       venue_id: venue_id,
-      symbol: instrument_id |> to_symbol,
+      symbol: to_symbol(instrument_id),
       received_at: received_at,
-      timestamp: timestamp |> normalize_timestamp(),
-      price: price |> Tai.Utils.Decimal.cast!(),
-      qty: qty |> Tai.Utils.Decimal.cast!(),
-      taker_side: side |> normalize_side,
-      venue_trade_id: venue_trade_id
-    })
-  end
-
-  def broadcast(
-        %{
-          "instrument_id" => instrument_id,
-          "price" => price,
-          "size" => size,
-          "side" => side,
-          "timestamp" => timestamp,
-          "trade_id" => venue_trade_id
-        },
-        venue_id,
-        received_at
-      ) do
-    TaiEvents.info(%Tai.Events.Trade{
-      venue_id: venue_id,
-      symbol: instrument_id |> to_symbol,
-      received_at: received_at,
-      timestamp: timestamp |> normalize_timestamp(),
-      price: price |> Tai.Utils.Decimal.cast!(),
-      qty: size |> Tai.Utils.Decimal.cast!(),
-      taker_side: side |> normalize_side,
+      timestamp: normalize_timestamp(timestamp),
+      price: Decimal.cast!(price),
+      qty: Decimal.cast!(size),
+      taker_side: normalize_side(side),
       venue_trade_id: venue_trade_id
     })
   end
@@ -52,8 +29,8 @@ defmodule Tai.VenueAdapters.OkEx.Stream.Trades do
   defp normalize_side("buy"), do: :buy
   defp normalize_side("sell"), do: :sell
 
-  defp normalize_timestamp(ts) do
-    {:ok, datetime, _offset} = DateTime.from_iso8601(ts)
-    datetime
+  defp normalize_timestamp(timestamp) do
+    {milliseconds, ""} = Integer.parse(timestamp)
+    DateTime.from_unix!(milliseconds, :millisecond)
   end
 end

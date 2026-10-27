@@ -11,6 +11,7 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
   @callback on_disconnect(WebSockex.connection_status_map(), state) :: {:ok, state}
   @callback on_msg(msg, received_at, state) :: {:ok, state}
   @callback subscribe(phase, state) :: {:ok, state}
+  @callback heartbeat_frame(state) :: :ping | {:text, String.t()}
 
   defmodule Requests do
     @type next_request_id :: non_neg_integer
@@ -151,15 +152,31 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
       end
 
       @impl true
-      def handle_frame({:text, msg}, state) do
-        msg_received_at = received_at()
-
-        msg
-        |> Jason.decode!()
-        |> on_msg(msg_received_at, state)
+      def handle_frame({:text, "pong"}, state) do
+        handle_pong(:pong, state)
       end
 
       @impl true
+      def handle_frame({:text, msg}, state) do
+        msg_received_at = received_at()
+
+        case Jason.decode(msg) do
+          {:ok, decoded} ->
+            on_msg(decoded, msg_received_at, state)
+
+          {:error, error} ->
+            TaiEvents.warning(%Tai.Events.StreamError{
+              venue_id: state.venue,
+              reason: {:invalid_json, error}
+            })
+
+            {:ok, state}
+        end
+      end
+
+      @impl true
+      def handle_pong(:pong, %{heartbeat_timeout_timer: nil} = state), do: {:ok, state}
+
       def handle_pong(:pong, state) do
         state =
           state
@@ -181,7 +198,7 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
 
       @impl true
       def handle_info({:heartbeat, :ping}, state) do
-        {:reply, :ping, schedule_heartbeat_timeout(state)}
+        {:reply, heartbeat_frame(state), schedule_heartbeat_timeout(state)}
       end
 
       @impl true
@@ -205,7 +222,14 @@ defmodule Tai.Venues.Streams.ConnectionAdapter do
       def on_disconnect(_, state), do: {:ok, state}
       def on_msg(_, _, state), do: {:ok, state}
       def subscribe(_, state), do: {:ok, state}
-      defoverridable on_terminate: 2, on_connect: 2, on_disconnect: 2, on_msg: 3, subscribe: 2
+      def heartbeat_frame(_state), do: :ping
+
+      defoverridable on_terminate: 2,
+                     on_connect: 2,
+                     on_disconnect: 2,
+                     on_msg: 3,
+                     subscribe: 2,
+                     heartbeat_frame: 1
 
       defp received_at, do: Tai.Time.monotonic_time()
 

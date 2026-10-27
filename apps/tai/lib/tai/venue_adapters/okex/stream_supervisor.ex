@@ -4,6 +4,7 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisor do
   alias Tai.VenueAdapters.OkEx.Stream.{
     Connection,
     ProcessAuth,
+    PublicConnection,
     ProcessOptionalChannels,
     ProcessOrderBook,
     RouteOrderBooks
@@ -39,15 +40,23 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisor do
       {RouteOrderBooks, [venue: stream.venue.id, order_books: stream.markets]},
       {ProcessAuth, [venue: stream.venue.id]},
       {ProcessOptionalChannels, [venue: stream.venue.id]},
-      {Connection, [endpoint: endpoint(), stream: stream, credential: credential]}
+      {PublicConnection, [endpoint: public_endpoint(), stream: stream]}
     ]
 
-    (order_book_children ++ process_order_book_children ++ system)
+    private_connection =
+      if credential do
+        [{Connection, [endpoint: private_endpoint(), stream: stream, credential: credential]}]
+      else
+        []
+      end
+
+    (order_book_children ++ process_order_book_children ++ system ++ private_connection)
     |> Supervisor.init(strategy: :one_for_one)
   end
 
-  # TODO: Make this configurable
-  defp endpoint, do: "wss://real.okex.com:8443/ws/v3"
+  # TODO: Make these configurable
+  defp public_endpoint, do: "wss://ws.okx.com/ws/v5/public"
+  defp private_endpoint, do: "wss://real.okex.com:8443/ws/v3"
 
   defp build_order_book_children(markets, quote_depth, broadcast_change_set) do
     markets

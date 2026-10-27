@@ -29,12 +29,12 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOptionalChannels do
   @impl true
   def handle_cast({%{"event" => "subscribe"}, _}, state), do: {:noreply, state}
 
-  @accepted_trade_types ~w(futures spot swap) |> Enum.map(&"#{&1}/trade")
-
   @impl true
-  def handle_cast({%{"table" => table, "data" => data}, received_at}, state)
-      when table in @accepted_trade_types do
-    data |> Enum.each(&Stream.Trades.broadcast(&1, state.venue, received_at))
+  def handle_cast(
+        {%{"arg" => %{"channel" => "trades"}, "data" => data}, received_at},
+        state
+      ) do
+    Enum.each(data, &Stream.Trades.broadcast(&1, state.venue, received_at))
     {:noreply, state}
   end
 

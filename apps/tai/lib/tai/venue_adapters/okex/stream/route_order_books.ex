@@ -19,11 +19,8 @@ defmodule Tai.VenueAdapters.OkEx.Stream.RouteOrderBooks do
 
   @spec start_link(venue: venue_id, order_books: [product]) :: GenServer.on_start()
   def start_link(venue: venue, order_books: order_books) do
-    stores = order_books |> build_stores()
-    state = %State{venue: venue, stores: stores}
-    name = venue |> to_name()
-
-    GenServer.start_link(__MODULE__, state, name: name)
+    state = %State{venue: venue, stores: build_stores(order_books)}
+    GenServer.start_link(__MODULE__, state, name: to_name(venue))
   end
 
   @spec to_name(venue_id) :: atom
@@ -33,42 +30,61 @@ defmodule Tai.VenueAdapters.OkEx.Stream.RouteOrderBooks do
   def init(state), do: {:ok, state}
 
   def handle_cast(
-        {%{"action" => "partial", "data" => data}, received_at},
+        {%{
+           "action" => "snapshot",
+           "arg" => %{"instId" => venue_symbol},
+           "data" => data
+         } = msg, received_at},
         state
-      ) do
-    data
-    |> Enum.each(fn %{"instrument_id" => venue_symbol} = msg ->
-      {state, venue_symbol}
-      |> forward({:snapshot, msg, received_at})
-    end)
-
-    {:noreply, state}
+      )
+      when is_list(data) do
+    route(data, :snapshot, venue_symbol, msg, received_at, state)
   end
 
   def handle_cast(
-        {%{"action" => "update", "data" => data}, received_at},
+        {%{
+           "action" => "update",
+           "arg" => %{"instId" => venue_symbol},
+           "data" => data
+         } = msg, received_at},
         state
-      ) do
-    data
-    |> Enum.each(fn %{"instrument_id" => venue_symbol} = msg ->
-      {state, venue_symbol}
-      |> forward({:update, msg, received_at})
-    end)
+      )
+      when is_list(data) do
+    route(data, :update, venue_symbol, msg, received_at, state)
+  end
+
+  def handle_cast({msg, received_at}, state) do
+    warn_unhandled(msg, received_at, state)
+    {:noreply, state}
+  end
+
+  defp route(data, action, venue_symbol, msg, received_at, state) do
+    case Map.fetch(state.stores, venue_symbol) do
+      {:ok, store} ->
+        Enum.each(data, &GenServer.cast(store, {action, &1, received_at}))
+
+      :error ->
+        warn_unhandled(msg, received_at, state)
+    end
 
     {:noreply, state}
   end
 
   defp build_stores(order_books) do
-    order_books
-    |> Enum.reduce(
-      %{},
-      &Map.put(&2, &1.venue_symbol, &1.venue_id |> ProcessOrderBook.to_name(&1.venue_symbol))
-    )
+    Enum.reduce(order_books, %{}, fn product, stores ->
+      store = ProcessOrderBook.to_name(product.venue_id, product.venue_symbol)
+      Map.put(stores, product.venue_symbol, store)
+    end)
   end
 
-  defp forward({state, venue_symbol}, msg) do
-    state.stores
-    |> Map.fetch!(venue_symbol)
-    |> GenServer.cast(msg)
+  defp warn_unhandled(msg, received_at, state) do
+    TaiEvents.warning(%Tai.Events.StreamMessageUnhandled{
+      venue_id: state.venue,
+      msg: msg,
+      received_at: received_at(received_at)
+    })
   end
+
+  defp received_at(%DateTime{} = received_at), do: received_at
+  defp received_at(received_at), do: Tai.Time.monotonic_to_date_time!(received_at)
 end

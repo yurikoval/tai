@@ -1,7 +1,7 @@
 defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
   use Tai.TestSupport.DataCase, async: false
-  alias Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook
   alias Tai.Markets.{OrderBook, PricePoint, Quote}
+  alias Tai.VenueAdapters.OkEx.Stream.{ProcessOrderBook, PublicConnection}
 
   @product struct(Tai.Venues.Product,
              venue_id: :venue_a,
@@ -17,178 +17,115 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
     {:ok, pid} = start_supervised({ProcessOrderBook, @product})
     Tai.Markets.subscribe_quote(@product.venue_id)
 
-    {:ok, %{pid: pid}}
+    %{pid: pid}
   end
 
-  describe "snapshot" do
-    test "can snapshot the order book without liquidations", %{pid: pid} do
-      data = %{
-        "timestamp" => "2019-01-05T02:03:06.309Z",
-        "bids" => [["100", "10", "1"]],
-        "asks" => [["101", "5", "1"]]
-      }
+  test "snapshots V5 four-field levels and Unix-millisecond timestamps", %{pid: pid} do
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
 
-      GenServer.cast(pid, {:snapshot, data, Timex.now()})
-
-      assert_receive %Quote{} = market_quote
-      assert Enum.count(market_quote.bids) == 1
-      assert Enum.at(market_quote.bids, 0) == %PricePoint{price: 100.0, size: 10.0}
-      assert Enum.count(market_quote.asks) == 1
-      assert Enum.at(market_quote.asks, 0) == %PricePoint{price: 101.0, size: 5.0}
-    end
-
-    test "can snapshot the order book with liquidations", %{pid: pid} do
-      data = %{
-        "timestamp" => "2019-01-05T02:03:06.309Z",
-        "bids" => [["100", "10", "2", "1"]],
-        "asks" => [["101", "5", "2", "1"]]
-      }
-
-      GenServer.cast(pid, {:snapshot, data, Timex.now()})
-
-      assert_receive %Quote{} = market_quote
-      assert Enum.count(market_quote.bids) == 1
-      assert Enum.at(market_quote.bids, 0) == %PricePoint{price: 100.0, size: 10.0}
-      assert Enum.count(market_quote.asks) == 1
-      assert Enum.at(market_quote.asks, 0) == %PricePoint{price: 101.0, size: 5.0}
-    end
+    assert_receive %Quote{} = quote
+    assert quote.last_venue_timestamp == DateTime.from_unix!(1_546_663_386_309, :millisecond)
+    assert quote.bids == [%PricePoint{price: 100.0, size: 10.0}]
+    assert quote.asks == [%PricePoint{price: 101.0, size: 5.0}]
   end
 
-  describe "insert" do
-    test "can insert the order book without liquidations", %{pid: pid} do
-      data = %{
-        "timestamp" => "2019-01-05T02:03:07.456Z",
-        "bids" => [["100", "110", "1"]],
-        "asks" => [["111", "50", "1"]]
-      }
+  test "inserts V5 four-field updates after a snapshot", %{pid: pid} do
+    GenServer.cast(pid, {:snapshot, snapshot(%{"bids" => [], "asks" => []}), Timex.now()})
+    assert_receive %Quote{}
 
-      GenServer.cast(pid, {:update, data, Timex.now()})
+    GenServer.cast(
+      pid,
+      {:update,
+       update(%{
+         "bids" => [["100", "110", "0", "1"]],
+         "asks" => [["111", "50", "0", "1"]]
+       }), Timex.now()}
+    )
 
-      assert_receive %Quote{} = market_quote
-      assert Enum.count(market_quote.bids) == 1
-      assert Enum.at(market_quote.bids, 0) == %PricePoint{price: 100.0, size: 110.0}
-      assert Enum.count(market_quote.asks) == 1
-      assert Enum.at(market_quote.asks, 0) == %PricePoint{price: 111.0, size: 50.0}
-    end
-
-    test "can insert the order book with liquidations", %{pid: pid} do
-      data = %{
-        "timestamp" => "2019-01-05T02:03:07.456Z",
-        "bids" => [["100", "110", "2", "1"]],
-        "asks" => [["111", "50", "2", "1"]]
-      }
-
-      GenServer.cast(pid, {:update, data, Timex.now()})
-
-      assert_receive %Quote{} = market_quote
-      assert Enum.count(market_quote.bids) == 1
-      assert Enum.at(market_quote.bids, 0) == %PricePoint{price: 100.0, size: 110.0}
-      assert Enum.count(market_quote.asks) == 1
-      assert Enum.at(market_quote.asks, 0) == %PricePoint{price: 111.0, size: 50.0}
-    end
+    assert_receive %Quote{} = quote
+    assert quote.bids == [%PricePoint{price: 100.0, size: 110.0}]
+    assert quote.asks == [%PricePoint{price: 111.0, size: 50.0}]
   end
 
-  describe "update" do
-    test "can update the order book without liquidations", %{pid: pid} do
-      data = %{
-        "timestamp" => "2019-01-05T02:03:07.456Z",
-        "bids" => [["100", "10", "1"]],
-        "asks" => [["101", "5", "1"]]
-      }
+  test "applies V5 four-field updates", %{pid: pid} do
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+    assert_receive %Quote{}
 
-      GenServer.cast(pid, {:snapshot, data, Timex.now()})
+    GenServer.cast(
+      pid,
+      {:update,
+       update(%{
+         "bids" => [["100", "110", "0", "2"]],
+         "asks" => [["101", "50", "0", "2"]]
+       }), Timex.now()}
+    )
 
-      assert_receive %Quote{} = _
-
-      data = %{
-        "timestamp" => "2019-01-05T02:03:07.456Z",
-        "bids" => [["100", "110", "1"]],
-        "asks" => [["101", "50", "1"]]
-      }
-
-      GenServer.cast(pid, {:update, data, Timex.now()})
-
-      assert_receive %Quote{} = market_quote
-      assert Enum.count(market_quote.bids) == 1
-      assert Enum.at(market_quote.bids, 0) == %PricePoint{price: 100.0, size: 110.0}
-      assert Enum.count(market_quote.asks) == 1
-      assert Enum.at(market_quote.asks, 0) == %PricePoint{price: 101.0, size: 50.0}
-    end
-
-    test "can update the order book with liquidations", %{pid: pid} do
-      data = %{
-        "timestamp" => "2019-01-05T02:03:07.456Z",
-        "bids" => [["100", "10", "1"]],
-        "asks" => [["101", "5", "1"]]
-      }
-
-      GenServer.cast(pid, {:snapshot, data, Timex.now()})
-
-      assert_receive %Quote{} = _
-
-      data = %{
-        "timestamp" => "2019-01-05T02:03:07.456Z",
-        "bids" => [["100", "110", "2", "1"]],
-        "asks" => [["101", "50", "2", "1"]]
-      }
-
-      GenServer.cast(pid, {:update, data, Timex.now()})
-
-      assert_receive %Quote{} = market_quote
-      assert Enum.count(market_quote.bids) == 1
-      assert Enum.at(market_quote.bids, 0) == %PricePoint{price: 100.0, size: 110.0}
-      assert Enum.count(market_quote.asks) == 1
-      assert Enum.at(market_quote.asks, 0) == %PricePoint{price: 101.0, size: 50.0}
-    end
+    assert_receive %Quote{} = quote
+    assert quote.bids == [%PricePoint{price: 100.0, size: 110.0}]
+    assert quote.asks == [%PricePoint{price: 101.0, size: 50.0}]
   end
 
-  describe "delete" do
-    test "can delete existing price points from the order book without liquidations", %{pid: pid} do
-      data = %{
-        "timestamp" => "2019-01-05T02:03:07.456Z",
-        "bids" => [["100", "10", "1"]],
-        "asks" => [["101", "5", "1"]]
-      }
+  test "deletes V5 levels whose size is zero", %{pid: pid} do
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+    assert_receive %Quote{}
 
-      GenServer.cast(pid, {:snapshot, data, Timex.now()})
+    GenServer.cast(
+      pid,
+      {:update,
+       update(%{
+         "bids" => [["100", "0", "0", "0"]],
+         "asks" => [["101", "0", "0", "0"]]
+       }), Timex.now()}
+    )
 
-      assert_receive %Quote{} = _
+    assert_receive %Quote{} = quote
+    assert Enum.empty?(quote.bids)
+    assert Enum.empty?(quote.asks)
+  end
 
-      data = %{
-        "timestamp" => "2019-01-05T02:03:07.456Z",
-        "bids" => [["100", "0", "1"]],
-        "asks" => [["101", "0", "1"]]
-      }
+  test "reconnects instead of applying an update after a sequence gap", %{pid: pid} do
+    parent = self()
 
-      GenServer.cast(pid, {:update, data, Timex.now()})
+    connection =
+      spawn(fn ->
+        receive do
+          message -> send(parent, {:connection_message, message})
+        end
+      end)
 
-      assert_receive %Quote{} = market_quote
-      assert Enum.empty?(market_quote.bids)
-      assert Enum.empty?(market_quote.asks)
-    end
+    Process.register(connection, PublicConnection.process_name(@product.venue_id))
 
-    test "can delete existing price points from the order book with liquidations", %{pid: pid} do
-      data = %{
-        "timestamp" => "2019-01-05T02:03:07.456Z",
-        "bids" => [["100", "10", "1"]],
-        "asks" => [["101", "5", "1"]]
-      }
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+    assert_receive %Quote{}
 
-      GenServer.cast(pid, {:snapshot, data, Timex.now()})
+    GenServer.cast(pid, {:update, update(%{"prevSeqId" => 99}), Timex.now()})
 
-      assert_receive %Quote{} = _
+    assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+    refute_receive %Quote{}
+  end
 
-      data = %{
-        "timestamp" => "2019-01-05T02:03:07.456Z",
-        "bids" => [["100", "0", "1", "1"]],
-        "asks" => [["101", "0", "1", "1"]]
-      }
+  defp snapshot(overrides \\ %{}) do
+    Map.merge(
+      %{
+        "ts" => "1546663386309",
+        "seqId" => 10,
+        "bids" => [["100", "10", "0", "1"]],
+        "asks" => [["101", "5", "0", "1"]]
+      },
+      overrides
+    )
+  end
 
-      GenServer.cast(pid, {:update, data, Timex.now()})
-
-      assert_receive %Quote{} = market_quote
-      assert Enum.empty?(market_quote.bids)
-      assert Enum.empty?(market_quote.asks)
-    end
+  defp update(overrides) do
+    Map.merge(
+      %{
+        "ts" => "1546663387456",
+        "prevSeqId" => 10,
+        "seqId" => 11,
+        "bids" => [],
+        "asks" => []
+      },
+      overrides
+    )
   end
 end
