@@ -120,8 +120,6 @@ defmodule Tai.Venues.Start.AccountsTest do
     assert event.venue == venue.id
     assert [accounts: account_errors] = event.reason
     assert Enum.count(account_errors) == 2
-    assert [{_, {error, stacktrace}} | _] = account_errors
-    assert error == %RuntimeError{message: "raise_error_for_accounts"}
-    assert Enum.count(stacktrace) > 0
+    assert [{_, {:exception, RuntimeError}} | _] = account_errors
   end
 end

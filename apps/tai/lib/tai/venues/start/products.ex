@@ -1,4 +1,6 @@
 defmodule Tai.Venues.Start.Products do
+  require Logger
+
   @type venue :: Tai.Venue.t()
   @type product :: Tai.Venues.Product.t()
   @type error_reason :: term
@@ -19,8 +21,15 @@ defmodule Tai.Venues.Start.Products do
         {:error, _} = error -> error
       end
     rescue
-      e ->
-        {:error, {e, __STACKTRACE__}}
+      exception ->
+        Logger.error("Venue startup task raised",
+          venue: venue.id,
+          phase: :products,
+          exception: exception.__struct__,
+          stacktrace: Exception.format_stacktrace(__STACKTRACE__)
+        )
+
+        {:error, {:exception, exception.__struct__}}
     end
   end
 

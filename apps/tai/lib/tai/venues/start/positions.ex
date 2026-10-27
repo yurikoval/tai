@@ -1,4 +1,6 @@
 defmodule Tai.Venues.Start.Positions do
+  require Logger
+
   @type venue :: Tai.Venue.t()
   @type total :: pos_integer
   @type error_reason :: term
@@ -19,8 +21,15 @@ defmodule Tai.Venues.Start.Positions do
         response = Tai.Venues.Client.positions(venue, credential_id)
         {response, credential_id}
       rescue
-        e ->
-          {{:error, {e, __STACKTRACE__}}, credential_id}
+        exception ->
+          Logger.error("Venue startup task raised",
+            venue: venue.id,
+            phase: :positions,
+            exception: exception.__struct__,
+            stacktrace: Exception.format_stacktrace(__STACKTRACE__)
+          )
+
+          {{:error, {:exception, exception.__struct__}}, credential_id}
       end
     end)
     |> Enum.reduce(

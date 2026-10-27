@@ -149,8 +149,6 @@ defmodule Tai.Venues.Start.ProductsTest do
 
     assert_event(%Tai.Events.VenueStartError{} = event, :error)
     assert event.venue == venue.id
-    assert [products: {error, stacktrace}] = event.reason
-    assert error == %RuntimeError{message: "raise_error_for_products"}
-    assert Enum.count(stacktrace) > 0
+    assert event.reason == [products: {:exception, RuntimeError}]
   end
 end

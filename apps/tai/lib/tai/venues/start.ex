@@ -1,5 +1,6 @@
 defmodule Tai.Venues.Start do
   use GenServer
+  require Logger
 
   defmodule State do
     @type status ::
@@ -56,9 +57,15 @@ defmodule Tai.Venues.Start do
   end
 
   def handle_continue({:start, {:products, :accounts, :positions} = group}, state) do
-    t_products = Task.async(Tai.Venues.Start.Products, :hydrate, [state.venue])
-    t_accounts = Task.async(Tai.Venues.Start.Accounts, :hydrate, [state.venue])
-    t_positions = Task.async(Tai.Venues.Start.Positions, :hydrate, [state.venue])
+    t_products =
+      start_task(state.venue, :products, Tai.Venues.Start.Products, :hydrate, [state.venue])
+
+    t_accounts =
+      start_task(state.venue, :accounts, Tai.Venues.Start.Accounts, :hydrate, [state.venue])
+
+    t_positions =
+      start_task(state.venue, :positions, Tai.Venues.Start.Positions, :hydrate, [state.venue])
+
     timer = Process.send_after(self(), :timeout, state.venue.timeout)
 
     state = %{
@@ -108,8 +115,10 @@ defmodule Tai.Venues.Start do
       positions: positions
     }
 
-    t_fees = Task.async(Tai.Venues.Start.Fees, :hydrate, [state.venue, products])
-    t_stream = Task.async(Tai.Venues.Start.Stream, :start, [stream])
+    t_fees =
+      start_task(state.venue, :fees, Tai.Venues.Start.Fees, :hydrate, [state.venue, products])
+
+    t_stream = start_task(state.venue, :stream, Tai.Venues.Start.Stream, :start, [stream])
 
     state = %{
       state
@@ -221,8 +230,80 @@ defmodule Tai.Venues.Start do
     {:noreply, state}
   end
 
+  def handle_info(
+        {:DOWN, ref, :process, _pid, _reason},
+        %State{status: {:wait, _group}} = state
+      ) do
+    if task_ref?(state, ref) do
+      send(self(), {ref, {:error, {:exit, :task_exit}}})
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do
+    {:noreply, state}
+  end
+
   def handle_call(:status, _from, state) do
     {:reply, state.status, state}
+  end
+
+  defp start_task(venue, phase, module, function, args) do
+    Task.Supervisor.async_nolink(Tai.Venues.Start.TaskSupervisor, fn ->
+      guarded_task(venue, phase, module, function, args)
+    end)
+  end
+
+  defp guarded_task(venue, phase, module, function, args) do
+    module
+    |> apply(function, args)
+    |> normalize_result(venue, phase)
+  rescue
+    exception ->
+      log_exception(venue, phase, exception, __STACKTRACE__)
+      {:error, {:exception, exception.__struct__}}
+  catch
+    kind, _reason ->
+      Logger.error("Venue startup task exited",
+        venue: venue.id,
+        phase: phase,
+        exit: kind,
+        stacktrace: Exception.format_stacktrace(__STACKTRACE__)
+      )
+
+      {:error, {kind, :task_exit}}
+  end
+
+  defp normalize_result(
+         {:error, {%{__exception__: true} = exception, stacktrace}},
+         venue,
+         phase
+       )
+       when is_list(stacktrace) do
+    log_exception(venue, phase, exception, stacktrace)
+    {:error, {:exception, exception.__struct__}}
+  end
+
+  defp normalize_result(result, _venue, _phase), do: result
+
+  defp log_exception(venue, phase, exception, stacktrace) do
+    Logger.error("Venue startup task raised",
+      venue: venue.id,
+      phase: phase,
+      exception: exception.__struct__,
+      stacktrace: Exception.format_stacktrace(stacktrace)
+    )
+  end
+
+  defp task_ref?(state, ref) do
+    ref in [
+      state.products_task,
+      state.accounts_task,
+      state.positions_task,
+      state.fees_task,
+      state.stream_task
+    ]
   end
 
   defp save_reply(state, ref, reply) do
