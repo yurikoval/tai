@@ -26,15 +26,15 @@ defmodule Tai.VenueAdapters.Deribit.StreamSupervisor do
 
     order_book_children =
       build_order_book_children(
-        stream.market_streams,
+        stream.markets,
         stream.venue.quote_depth,
         stream.venue.broadcast_change_set
       )
 
-    process_order_book_children = build_process_order_book_children(stream.market_streams)
+    process_order_book_children = build_process_order_book_children(stream.markets)
 
     system = [
-      {RouteOrderBooks, [venue_id: stream.venue.id, order_books: stream.market_streams]},
+      {RouteOrderBooks, [venue_id: stream.venue.id, order_books: stream.markets]},
       {Connection, [endpoint: endpoint(), stream: stream, credential: credential]}
     ]
 
