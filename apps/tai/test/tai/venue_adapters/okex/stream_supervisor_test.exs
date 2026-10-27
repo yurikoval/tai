@@ -2,7 +2,14 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisorTest do
   use ExUnit.Case, async: false
 
   alias Tai.Markets.OrderBook
-  alias Tai.VenueAdapters.OkEx.Stream.{Connection, ProcessOrderBook, PublicConnection}
+
+  alias Tai.VenueAdapters.OkEx.Stream.{
+    Connection,
+    OrderBookSupervisor,
+    ProcessOrderBook,
+    PublicConnection
+  }
+
   alias Tai.VenueAdapters.OkEx.StreamSupervisor
 
   test "always starts V5 public streaming and starts legacy private streaming only with credentials" do
@@ -15,7 +22,7 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisorTest do
     assert Connection in private_ids
   end
 
-  test "restarts a book processor when its order book restarts" do
+  test "localizes book lifecycle recovery without restarting connections" do
     product =
       struct(Tai.Venues.Product,
         venue_id: :okex_restart_test,
@@ -24,19 +31,26 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisorTest do
       )
 
     {:ok, {flags, children}} = StreamSupervisor.init(stream(%{}, [product]))
-    book_id = OrderBook.to_name(product.venue_id, product.symbol)
-    processor_id = ProcessOrderBook.to_name(product.venue_id, product.venue_symbol)
+    pair_id = OrderBookSupervisor.to_name(product.venue_id, product.venue_symbol)
+    pair_child = Enum.find(children, &(&1.id == pair_id))
 
-    coupled_children =
-      Enum.filter(children, fn child -> child.id in [book_id, processor_id] end)
+    assert flags.strategy == :one_for_one
+    assert pair_child
 
-    assert flags.strategy == :rest_for_one
-    assert Enum.map(coupled_children, & &1.id) == [book_id, processor_id]
+    root_children = [
+      pair_child,
+      worker_child(PublicConnection),
+      worker_child(Connection)
+    ]
 
-    {:ok, supervisor} = Supervisor.start_link(coupled_children, strategy: flags.strategy)
+    {:ok, supervisor} = Supervisor.start_link(root_children, strategy: flags.strategy)
     Process.unlink(supervisor)
     on_exit(fn -> if Process.alive?(supervisor), do: Supervisor.stop(supervisor) end)
 
+    book_id = OrderBook.to_name(product.venue_id, product.symbol)
+    processor_id = ProcessOrderBook.to_name(product.venue_id, product.venue_symbol)
+    private_connection = child_pid(supervisor, Connection)
+    public_connection = child_pid(supervisor, PublicConnection)
     old_book = Process.whereis(book_id)
     old_processor = Process.whereis(processor_id)
     :sys.replace_state(old_processor, &%{&1 | sequence_id: 10})
@@ -46,6 +60,19 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisorTest do
     assert wait_for_restart(book_id, old_book)
     new_processor = wait_for_restart(processor_id, old_processor)
     assert %{sequence_id: nil} = :sys.get_state(new_processor)
+    assert child_pid(supervisor, Connection) == private_connection
+
+    Process.exit(public_connection, :kill)
+
+    new_public_connection =
+      wait_for_child_restart(supervisor, PublicConnection, public_connection)
+
+    assert child_pid(supervisor, Connection) == private_connection
+
+    Process.exit(private_connection, :kill)
+
+    assert wait_for_child_restart(supervisor, Connection, private_connection)
+    assert child_pid(supervisor, PublicConnection) == new_public_connection
   end
 
   defp child_ids(stream) do
@@ -76,6 +103,20 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisorTest do
     %Tai.Venues.Stream{venue: venue, markets: markets, accounts: [], positions: []}
   end
 
+  defp worker_child(id) do
+    %{
+      id: id,
+      start: {Agent, :start_link, [fn -> :ok end]}
+    }
+  end
+
+  defp child_pid(supervisor, id) do
+    Enum.find_value(Supervisor.which_children(supervisor), fn
+      {^id, pid, :worker, _modules} -> pid
+      _child -> nil
+    end)
+  end
+
   defp wait_for_restart(name, old_pid, attempts \\ 50)
 
   defp wait_for_restart(_name, _old_pid, 0), do: flunk("process did not restart")
@@ -88,6 +129,22 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisorTest do
       _ ->
         Process.sleep(10)
         wait_for_restart(name, old_pid, attempts - 1)
+    end
+  end
+
+  defp wait_for_child_restart(supervisor, id, old_pid, attempts \\ 50)
+
+  defp wait_for_child_restart(_supervisor, _id, _old_pid, 0),
+    do: flunk("child did not restart")
+
+  defp wait_for_child_restart(supervisor, id, old_pid, attempts) do
+    case child_pid(supervisor, id) do
+      pid when is_pid(pid) and pid != old_pid ->
+        pid
+
+      _ ->
+        Process.sleep(10)
+        wait_for_child_restart(supervisor, id, old_pid, attempts - 1)
     end
   end
 

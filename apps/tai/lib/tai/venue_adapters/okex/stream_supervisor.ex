@@ -3,14 +3,12 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisor do
 
   alias Tai.VenueAdapters.OkEx.Stream.{
     Connection,
+    OrderBookSupervisor,
     ProcessAuth,
     PublicConnection,
     ProcessOptionalChannels,
-    ProcessOrderBook,
     RouteOrderBooks
   }
-
-  alias Tai.Markets.OrderBook
 
   @type stream :: Tai.Venues.Stream.t()
   @type venue_id :: Tai.Venue.id()
@@ -34,8 +32,6 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisor do
         stream.venue.broadcast_change_set
       )
 
-    process_order_book_children = build_process_order_book_children(stream.markets)
-
     system = [
       {RouteOrderBooks, [venue: stream.venue.id, order_books: stream.markets]},
       {ProcessAuth, [venue: stream.venue.id]},
@@ -50,8 +46,8 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisor do
         []
       end
 
-    (order_book_children ++ process_order_book_children ++ system ++ private_connection)
-    |> Supervisor.init(strategy: :rest_for_one)
+    (order_book_children ++ system ++ private_connection)
+    |> Supervisor.init(strategy: :one_for_one)
   end
 
   # TODO: Make these configurable
@@ -59,17 +55,13 @@ defmodule Tai.VenueAdapters.OkEx.StreamSupervisor do
   defp private_endpoint, do: "wss://real.okex.com:8443/ws/v3"
 
   defp build_order_book_children(markets, quote_depth, broadcast_change_set) do
-    markets
-    |> Enum.map(&OrderBook.child_spec(&1, quote_depth, broadcast_change_set))
-  end
-
-  defp build_process_order_book_children(markets) do
-    markets
-    |> Enum.map(fn p ->
-      %{
-        id: ProcessOrderBook.to_name(p.venue_id, p.venue_symbol),
-        start: {ProcessOrderBook, :start_link, [p]}
-      }
+    Enum.map(markets, fn product ->
+      {OrderBookSupervisor,
+       [
+         product: product,
+         quote_depth: quote_depth,
+         broadcast_change_set: broadcast_change_set
+       ]}
     end)
   end
 end

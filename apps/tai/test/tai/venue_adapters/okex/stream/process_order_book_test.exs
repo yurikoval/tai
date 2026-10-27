@@ -30,7 +30,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
     assert quote.asks == [%PricePoint{price: 101.0, size: 5.0}]
   end
 
-  test "inserts V5 four-field updates after a snapshot", %{pid: pid} do
+  test "accepts an empty snapshot before later updates", %{pid: pid} do
     GenServer.cast(pid, {:snapshot, snapshot(%{"bids" => [], "asks" => []}), Timex.now()})
     assert_receive %Quote{}
 
@@ -136,6 +136,29 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
       refute_receive %Quote{}
       assert %{sequence_id: nil} = :sys.get_state(pid)
     end)
+  end
+
+  test "advances sequence ids for empty updates", %{pid: pid} do
+    GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+    assert_receive %Quote{}
+
+    GenServer.cast(pid, {:update, update(%{}), Timex.now()})
+
+    refute_receive %Quote{}
+    assert %{sequence_id: 11} = :sys.get_state(pid)
+
+    GenServer.cast(
+      pid,
+      {:update,
+       update(%{
+         "prevSeqId" => 11,
+         "seqId" => 12,
+         "bids" => [["100", "11", "0", "2"]]
+       }), Timex.now()}
+    )
+
+    assert_receive %Quote{bids: [%PricePoint{price: 100.0, size: 11.0}]}
+    assert %{sequence_id: 12} = :sys.get_state(pid)
   end
 
   test "accepts equal sequence ids only for empty keepalives", %{pid: pid} do
