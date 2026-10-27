@@ -1,4 +1,6 @@
 defmodule Tai.Venues.Start.Accounts do
+  require Logger
+
   @type venue :: Tai.Venue.t()
   @type credential_id :: Tai.Venue.credential_id()
   @type credential_error :: {credential_id, Tai.Venues.Client.shared_error_reason()}
@@ -20,8 +22,15 @@ defmodule Tai.Venues.Start.Accounts do
         response = Tai.Venues.Client.accounts(venue, credential_id)
         {response, credential_id}
       rescue
-        e ->
-          {{:error, {e, __STACKTRACE__}}, credential_id}
+        exception ->
+          Logger.error("Venue startup task raised",
+            venue: venue.id,
+            phase: :accounts,
+            exception: exception.__struct__,
+            stacktrace: Exception.format_stacktrace(__STACKTRACE__)
+          )
+
+          {{:error, {:exception, exception.__struct__}}, credential_id}
       end
     end)
     |> Enum.reduce(

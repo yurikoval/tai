@@ -93,7 +93,7 @@ defmodule Tai.Venues.Start.FeesTest do
 
     start_supervised!({Tai.Venues.Start, venue})
 
-    assert_event(%Tai.Events.VenueStart{} , :info)
+    assert_event(%Tai.Events.VenueStart{}, :info)
 
     fees = Tai.Venues.FeeStore.all()
     assert Enum.count(fees) == 1
@@ -107,7 +107,7 @@ defmodule Tai.Venues.Start.FeesTest do
 
     start_supervised!({Tai.Venues.Start, venue})
 
-    assert_event(%Tai.Events.VenueStart{} , :info)
+    assert_event(%Tai.Events.VenueStart{}, :info)
 
     fees = Tai.Venues.FeeStore.all()
     assert Enum.count(fees) == 1
@@ -121,7 +121,7 @@ defmodule Tai.Venues.Start.FeesTest do
 
     start_supervised!({Tai.Venues.Start, venue})
 
-    assert_event(%Tai.Events.VenueStart{} , :info)
+    assert_event(%Tai.Events.VenueStart{}, :info)
 
     fees = Tai.Venues.FeeStore.all()
     assert Enum.count(fees) == 1
@@ -155,8 +155,6 @@ defmodule Tai.Venues.Start.FeesTest do
     assert event.venue == venue.id
     assert [fees: fee_errors] = event.reason
     assert Enum.count(fee_errors) == 1
-    assert [{_, {error, stacktrace}} | _] = fee_errors
-    assert error == %RuntimeError{message: "raise_error_for_fees"}
-    assert Enum.count(stacktrace) > 0
+    assert [{_, {:exception, RuntimeError}} | _] = fee_errors
   end
 end

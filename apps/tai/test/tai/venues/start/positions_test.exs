@@ -91,6 +91,14 @@ defmodule Tai.Venues.Start.PositionsTest do
     end
   end
 
+  defmodule ExitErrorAdapter do
+    use Support.StartVenueAdapter
+
+    def positions(_venue_id, _credential_id, _credentials) do
+      Process.exit(self(), :kill)
+    end
+  end
+
   @base_venue struct(
                 Tai.Venue,
                 adapter: TestAdapter,
@@ -135,6 +143,19 @@ defmodule Tai.Venues.Start.PositionsTest do
     assert event.reason == [positions: [main: :maintenance]]
   end
 
+  test "records an error and remains running when position hydration exits" do
+    venue = @base_venue |> Map.put(:adapter, ExitErrorAdapter)
+    TaiEvents.firehose_subscribe()
+
+    pid = start_supervised!({Tai.Venues.Start, venue})
+
+    assert_event(%Tai.Events.VenueStartError{} = event, :error)
+    assert event.venue == venue.id
+    assert event.reason == [positions: {:exit, :task_exit}]
+    assert Tai.Venues.Start.status(venue.id) == {:error, event.reason}
+    assert Process.alive?(pid)
+  end
+
   test "broadcasts a start error event when the adapter raises an error" do
     venue = @base_venue |> Map.put(:adapter, RaiseErrorAdapter)
     Tai.SystemBus.subscribe({:venue, :start_error})
@@ -150,8 +171,6 @@ defmodule Tai.Venues.Start.PositionsTest do
     assert event.venue == venue.id
     assert [positions: position_errors] = event.reason
     assert Enum.count(position_errors) == 1
-    assert [{_, {error, stacktrace}} | _] = position_errors
-    assert error == %RuntimeError{message: "raise_error_for_positions"}
-    assert Enum.count(stacktrace) > 0
+    assert [{_, {:exception, RuntimeError}} | _] = position_errors
   end
 end

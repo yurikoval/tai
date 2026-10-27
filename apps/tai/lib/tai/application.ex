@@ -19,6 +19,7 @@ defmodule Tai.Application do
       Tai.Venues.AccountStore,
       Tai.Venues.VenueStore,
       Tai.Venues.StreamsSupervisor,
+      {Task.Supervisor, name: Tai.Venues.Start.TaskSupervisor},
       Tai.Venues.Supervisor,
       Tai.Advisors.Supervisor,
       Tai.Fleets.Supervisor,

@@ -1,4 +1,6 @@
 defmodule Tai.Venues.Start.Fees do
+  require Logger
+
   @type venue :: Tai.Venue.t()
   @type product :: Tai.Venues.Product.t()
 
@@ -18,8 +20,15 @@ defmodule Tai.Venues.Start.Fees do
         response = Tai.Venues.Client.maker_taker_fees(venue, credential_id)
         {response, credential_id}
       rescue
-        e ->
-          {{:error, {e, __STACKTRACE__}}, credential_id}
+        exception ->
+          Logger.error("Venue startup task raised",
+            venue: venue.id,
+            phase: :fees,
+            exception: exception.__struct__,
+            stacktrace: Exception.format_stacktrace(__STACKTRACE__)
+          )
+
+          {{:error, {:exception, exception.__struct__}}, credential_id}
       end
     end)
     |> Enum.reduce(
