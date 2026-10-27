@@ -18,7 +18,9 @@ defmodule ExDeribit.Instrument do
           contract_size: pos_integer,
           base_currency: String.t(),
           strike: number | nil,
-          option_type: String.t() | nil
+          option_type: String.t() | nil,
+          instrument_type: String.t() | nil,
+          settlement_currency: String.t() | nil
         }
 
   defstruct ~w(
@@ -38,5 +40,7 @@ defmodule ExDeribit.Instrument do
     base_currency
     strike
     option_type
+    instrument_type
+    settlement_currency
   )a
 end

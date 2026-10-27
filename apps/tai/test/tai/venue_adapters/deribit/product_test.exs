@@ -1,35 +1,29 @@
 defmodule Tai.VenuesAdapters.Deribit.ProductTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
-  setup do
-    on_exit(fn ->
-      :ok = Application.stop(:tzdata)
-    end)
+  alias Tai.VenueAdapters.Deribit.Product
 
-    {:ok, _} = Application.ensure_all_started(:tzdata)
-    :ok
-  end
+  @base_attrs %{
+    instrument_name: "BTC-25SEP20",
+    base_currency: "BTC",
+    quote_currency: "USD",
+    settlement_currency: "BTC",
+    instrument_type: "reversed",
+    is_active: true,
+    kind: "future",
+    creation_timestamp: 1_588_838_404_000,
+    expiration_timestamp: 1_590_134_400_000,
+    min_trade_amount: 0.1,
+    tick_size: 0.005,
+    contract_size: 10.0,
+    maker_commission: 0.004,
+    taker_commission: 0.004
+  }
 
   describe ".build/2" do
-    @base_attrs %{
-      instrument_name: "BTC-25SEP20",
-      base_currency: "BTC",
-      quote_currency: "USD",
-      is_active: true,
-      kind: "future",
-      creation_timestamp: 1_588_838_404_000,
-      expiration_timestamp: 1_590_134_400_000,
-      min_trade_amount: 0.1,
-      tick_size: 0.005,
-      contract_size: 10.0,
-      maker_commission: 0.004,
-      taker_commission: 0.004
-    }
+    test "returns an inverse product from a supported venue instrument" do
+      assert {:ok, product} = build()
 
-    test "returns a product struct from a venue instrument" do
-      instrument = struct(ExDeribit.Instrument, @base_attrs)
-
-      product = Tai.VenueAdapters.Deribit.Product.build(instrument, :venue_a)
       assert product.venue_id == :venue_a
       assert product.symbol == :btc_25sep20
       assert product.venue_symbol == "BTC-25SEP20"
@@ -37,57 +31,61 @@ defmodule Tai.VenuesAdapters.Deribit.ProductTest do
       assert product.price_increment == Decimal.new("0.005")
       assert product.min_price == Decimal.new("0.005")
       assert product.size_increment == Decimal.new("0.1")
+      assert product.min_size == Decimal.new("0.1")
       assert product.value == Decimal.new("1E+1")
-      assert product.is_quanto == false
-      assert product.is_inverse == true
+      assert product.value_side == :quote
+      refute product.is_quanto
+      assert product.is_inverse
       assert %DateTime{} = product.listing
       assert %DateTime{} = product.expiry
     end
 
-    test "type is :option when kind is 'option'" do
-      attrs = Map.merge(@base_attrs, %{kind: "option"})
-      instrument = struct(ExDeribit.Instrument, attrs)
-
-      product = Tai.VenueAdapters.Deribit.Product.build(instrument, :venue_a)
-      assert product.type == :option
+    test "supports legacy BTC and ETH inverse records without contract metadata" do
+      assert {:ok, product} = build(%{instrument_type: nil, settlement_currency: nil})
+      assert product.is_inverse
     end
 
-    test "type is :swap when kind is 'future' & instrument name includes 'PERPETUAL'" do
-      attrs = Map.merge(@base_attrs, %{kind: "future", instrument_name: "BTC-PERPETUAL"})
-      instrument = struct(ExDeribit.Instrument, attrs)
-
-      product = Tai.VenueAdapters.Deribit.Product.build(instrument, :venue_a)
+    test "type is :swap for a perpetual future" do
+      assert {:ok, product} = build(%{instrument_name: "BTC-PERPETUAL"})
       assert product.type == :swap
     end
 
-    test "assigns maker/taker fee" do
-      attrs = Map.merge(@base_attrs, %{maker_commission: "-0.025", taker_commission: "0.05"})
-      instrument = struct(ExDeribit.Instrument, attrs)
+    test "assigns maker and taker fees" do
+      assert {:ok, product} =
+               build(%{maker_commission: "-0.025", taker_commission: "0.05"})
 
-      product = Tai.VenueAdapters.Deribit.Product.build(instrument, :venue_a)
-      assert product.venue_id == :venue_a
       assert product.maker_fee == Decimal.new("-0.025")
       assert product.taker_fee == Decimal.new("0.05")
     end
 
-    test "assigns the option_type" do
-      call_attrs = Map.merge(@base_attrs, %{option_type: "call"})
-      call_instrument = struct(ExDeribit.Instrument, call_attrs)
-      product = Tai.VenueAdapters.Deribit.Product.build(call_instrument, :venue_a)
-      assert product.option_type == :call
+    test "rejects unsupported product families and linear contracts" do
+      assert {:error, {:unsupported_instrument, {:kind, "spot"}}} = build(%{kind: "spot"})
 
-      put_attrs = Map.merge(@base_attrs, %{option_type: "put"})
-      put_instrument = struct(ExDeribit.Instrument, put_attrs)
-      product = Tai.VenueAdapters.Deribit.Product.build(put_instrument, :venue_a)
-      assert product.option_type == :put
+      assert {:error, {:unsupported_instrument, {:kind, "future_combo"}}} =
+               build(%{kind: "future_combo"})
+
+      assert {:error, {:unsupported_instrument, {:kind, "option"}}} =
+               build(%{kind: "option", option_type: "call", strike: 10_000.0})
+
+      assert {:error, {:unsupported_instrument, {:contract, "linear", "BTC", "USD", "USDC"}}} =
+               build(%{instrument_type: "linear", settlement_currency: "USDC"})
     end
 
-    test "assigns the strike price as a normal reduced decimal " do
-      attrs = Map.merge(@base_attrs, %{strike: 10_000.0})
-      instrument = struct(ExDeribit.Instrument, attrs)
+    test "rejects malformed timestamps and non-positive numeric fields" do
+      assert {:error, {:invalid_instrument, {:creation_timestamp, -1}}} =
+               build(%{creation_timestamp: -1})
 
-      product = Tai.VenueAdapters.Deribit.Product.build(instrument, :venue_a)
-      assert product.strike == Decimal.new("10000")
+      assert {:error, {:invalid_instrument, {:tick_size, 0}}} = build(%{tick_size: 0})
     end
+
+    test "rejects malformed or unexpected instrument names before atom conversion" do
+      assert {:error, {:invalid_instrument, {:instrument_name, "BTC-EVIL-PERPETUAL"}}} =
+               build(%{instrument_name: "BTC-EVIL-PERPETUAL"})
+    end
+  end
+
+  defp build(attrs \\ %{}) do
+    instrument = struct(ExDeribit.Instrument, Map.merge(@base_attrs, attrs))
+    Product.build(instrument, :venue_a)
   end
 end

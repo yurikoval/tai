@@ -39,6 +39,7 @@ defmodule Tai.Venues.Adapters.ProductsTest do
   end)
 
   defp match_requests_on(:okex), do: [:query]
+  defp match_requests_on(:deribit), do: [:query, :request_body]
   defp match_requests_on(_venue_id), do: [:request_body]
 
   def setup_adapter(:mock) do
