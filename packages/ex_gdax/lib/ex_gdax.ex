@@ -1,6 +1,6 @@
 defmodule ExGdax do
   @moduledoc """
-  GDAX API client.
+  Coinbase Exchange API client.
   """
 
   @doc """
@@ -32,9 +32,9 @@ defmodule ExGdax do
 
       iex> ExGdax.list_products()
       {:ok,
-       [%{"base_currency" => "ETH", "base_max_size" => "5000",
-          "base_min_size" => "0.01", "display_name" => "ETH/USD", "id" => "ETH-USD",
-          "margin_enabled" => false, "quote_currency" => "USD",
+       [%{"base_currency" => "ETH", "base_increment" => "0.00000001",
+          "display_name" => "ETH-USD", "id" => "ETH-USD",
+          "min_market_funds" => "1", "quote_currency" => "USD",
           "quote_increment" => "0.01"}, ...]}
   """
   defdelegate list_products, to: ExGdax.Market, as: :list_products
@@ -206,7 +206,7 @@ defmodule ExGdax do
   @doc """
   Place a new order.
 
-  Refer to params listed in [GDAX API docs](https://docs.gdax.com/#place-a-new-order)
+  Refer to the [Coinbase Exchange API docs](https://docs.cdp.coinbase.com/exchange/docs/welcome).
 
   ## Examples
 

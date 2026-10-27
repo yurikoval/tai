@@ -93,7 +93,7 @@ config :tai,
       products: "btc_usd ltc_usd eth_usd",
       credentials: %{
         main: %{
-          api_url: "https://api.pro.coinbase.com",
+          api_url: "https://api.exchange.coinbase.com",
           api_key: {:system_file, "GDAX_API_KEY"},
           api_secret: {:system_file, "GDAX_API_SECRET"},
           api_passphrase: {:system_file, "GDAX_API_PASSPHRASE"}

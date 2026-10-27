@@ -1,8 +1,18 @@
 defmodule ExGdax.Api do
   @moduledoc """
-  Provides basic HTTP interface with GDAX API.
+  Provides the basic HTTP interface for the Coinbase Exchange API.
   """
   alias ExGdax.{Config, Auth}
+
+  def public_get(path, params \\ %{}, config \\ nil) do
+    config = Config.config_or_env_config(config)
+    qs = query_string(path, params)
+
+    qs
+    |> url(config)
+    |> HTTPoison.get("Content-Type": "application/json")
+    |> parse_response()
+  end
 
   def get(path, params \\ %{}, config \\ nil) do
     config = Config.config_or_env_config(config)
@@ -37,16 +47,13 @@ defmodule ExGdax.Api do
   defp query_string(path, params) when map_size(params) == 0, do: path
 
   defp query_string(path, params) do
-    query =
-      params
-      |> Enum.map(fn {key, val} -> "#{key}=#{val}" end)
-      |> Enum.join("&")
+    query = Enum.map_join(params, "&", fn {key, val} -> "#{key}=#{val}" end)
 
     path <> "?" <> query
   end
 
   defp headers(method, path, body, config) do
-    timestamp = :os.system_time(:seconds)
+    timestamp = :os.system_time(:seconds) |> Integer.to_string()
 
     [
       "Content-Type": "application/json",
@@ -57,20 +64,21 @@ defmodule ExGdax.Api do
     ]
   end
 
-  defp parse_response(response) do
-    case response do
-      {:ok, %HTTPoison.Response{body: body, status_code: code}} ->
-        if code in 200..299 do
-          {:ok, Poison.decode!(body)}
-        else
-          case Poison.decode(body) do
-            {:ok, json} -> {:error, json["message"], code}
-            {:error, _} -> {:error, body, code}
-          end
-        end
-
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        {:error, reason}
+  defp parse_response({:ok, %HTTPoison.Response{body: body, status_code: code}})
+       when code in 200..299 do
+    case Poison.decode(body) do
+      {:ok, json} -> {:ok, json}
+      {:error, _} -> {:error, {:invalid_json, body}}
     end
   end
+
+  defp parse_response({:ok, %HTTPoison.Response{body: body, status_code: code}}) do
+    case Poison.decode(body) do
+      {:ok, %{"message" => message}} -> {:error, message, code}
+      {:ok, json} -> {:error, json, code}
+      {:error, _} -> {:error, body, code}
+    end
+  end
+
+  defp parse_response({:error, %HTTPoison.Error{reason: reason}}), do: {:error, reason}
 end

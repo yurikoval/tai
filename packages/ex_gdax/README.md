@@ -2,7 +2,7 @@
 [![Build Status](https://github.com/bnhansn/ex_gdax/workflows/test/badge.svg?branch=main)](https://github.com/bnhansn/ex_gdax/actions?query=workflow%3Atest)
 [![hex.pm version](https://img.shields.io/hexpm/v/ex_gdax.svg?style=flat)](https://hex.pm/packages/ex_gdax)
 
-GDAX API client for Elixir.
+Coinbase Exchange API client for Elixir (retaining the historical `ExGdax` module name).
 
 ## Installation
 
@@ -18,7 +18,7 @@ Run `mix deps.get` to install.
 
 ## Configuration
 
-Add the following configuration variables in your config/config.exs file:
+Public market-data requests do not require credentials. Configure credentials only for private account, order, and transfer requests:
 
 ```elixir
 use Mix.Config
@@ -40,7 +40,7 @@ config :ex_gdax, api_key:        System.get_env("GDAX_API_KEY"),
                  api_passphrase: System.get_env("GDAX_API_PASSPHRASE")
 ```
 
-Alternatively, if you need to work with multiple GDAX accounts, the private API
+Alternatively, if you need to work with multiple Coinbase Exchange accounts, the private API
 call functions accept an additional `config` (`ExGdax.Config` struct) parameter:
 
 ```elixir
@@ -86,7 +86,7 @@ May the charts be ever in your favor 📈😊
 
 [Full Documentation](https://hexdocs.pm/ex_gdax/ExGdax.html)
 
-[GDAX API Docs](https://docs.gdax.com)
+[Coinbase Exchange API Docs](https://docs.cdp.coinbase.com/exchange/docs/welcome)
 
 ## License
 
