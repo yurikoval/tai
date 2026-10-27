@@ -31,8 +31,11 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
   @spec init(state) :: {:ok, state}
   def init(state), do: {:ok, state}
 
-  def handle_cast({:snapshot, %{"seqId" => sequence_id} = data, received_at}, state)
-      when is_integer(sequence_id) do
+  def handle_cast(
+        {:snapshot, %{"prevSeqId" => -1, "seqId" => sequence_id} = data, received_at},
+        state
+      )
+      when is_integer(sequence_id) and sequence_id >= 0 do
     case build_change_set(data, received_at, state) do
       {:ok, change_set} ->
         OrderBook.replace(change_set)
@@ -51,8 +54,8 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBook do
         {:update, %{"prevSeqId" => previous_id, "seqId" => sequence_id} = data, received_at},
         %{sequence_id: current_id} = state
       )
-      when is_integer(previous_id) and is_integer(sequence_id) and is_integer(current_id) and
-             current_id == previous_id do
+      when is_integer(previous_id) and previous_id >= 0 and is_integer(sequence_id) and
+             sequence_id >= 0 and is_integer(current_id) and current_id == previous_id do
     case build_change_set(data, received_at, state) do
       {:ok, change_set} ->
         OrderBook.apply(change_set)

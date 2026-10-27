@@ -107,6 +107,37 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
     assert %{sequence_id: nil} = :sys.get_state(pid)
   end
 
+  test "rejects invalid snapshot and update sequence domains", %{pid: pid} do
+    register_connection()
+
+    invalid_snapshots = [
+      snapshot(%{"prevSeqId" => 5}),
+      snapshot(%{"seqId" => -1})
+    ]
+
+    Enum.each(invalid_snapshots, fn invalid_snapshot ->
+      GenServer.cast(pid, {:snapshot, invalid_snapshot, Timex.now()})
+      assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+      refute_receive %Quote{}
+      assert %{sequence_id: nil} = :sys.get_state(pid)
+    end)
+
+    invalid_updates = [
+      update(%{"prevSeqId" => -1}),
+      update(%{"seqId" => -1})
+    ]
+
+    Enum.each(invalid_updates, fn invalid_update ->
+      GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
+      assert_receive %Quote{}
+
+      GenServer.cast(pid, {:update, invalid_update, Timex.now()})
+      assert_receive {:connection_message, {:"$websockex_cast", :reconnect}}
+      refute_receive %Quote{}
+      assert %{sequence_id: nil} = :sys.get_state(pid)
+    end)
+  end
+
   test "clears synchronization and reconnects after an invalid snapshot", %{pid: pid} do
     register_connection()
     GenServer.cast(pid, {:snapshot, snapshot(), Timex.now()})
@@ -181,6 +212,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.ProcessOrderBookTest do
     Map.merge(
       %{
         "ts" => "1546663386309",
+        "prevSeqId" => -1,
         "seqId" => 10,
         "bids" => [["100", "10", "0", "1"]],
         "asks" => [["101", "5", "0", "1"]]
