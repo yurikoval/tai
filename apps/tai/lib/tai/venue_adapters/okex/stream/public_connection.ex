@@ -72,7 +72,7 @@ defmodule Tai.VenueAdapters.OkEx.Stream.PublicConnection do
 
   @impl true
   def on_msg(
-        %{"action" => action, "arg" => %{"channel" => "books"}} = msg,
+        %{"action" => action, "arg" => %{"channel" => "books"}, "data" => _data} = msg,
         received_at,
         state
       )
