@@ -83,6 +83,6 @@
   "timex": {:hex, :timex, "3.7.9", "790cdfc4acfce434e442f98c02ea6d84d0239073bfd668968f82ac63e9a6788d", [:mix], [{:combine, "~> 0.10", [hex: :combine, repo: "hexpm", optional: false]}, {:gettext, "~> 0.10", [hex: :gettext, repo: "hexpm", optional: false]}, {:tzdata, "~> 1.1", [hex: :tzdata, repo: "hexpm", optional: false]}], "hexpm", "64691582e5bb87130f721fc709acfb70f24405833998fabf35be968984860ce1"},
   "tzdata": {:hex, :tzdata, "1.1.1", "20c8043476dfda8504952d00adac41c6eda23912278add38edc140ae0c5bcc46", [:mix], [{:hackney, "~> 1.17", [hex: :hackney, repo: "hexpm", optional: false]}], "hexpm", "a69cec8352eafcd2e198dea28a34113b60fdc6cb57eb5ad65c10292a6ba89787"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.7.0", "bc84380c9ab48177092f43ac89e4dfa2c6d62b40b8bd132b1059ecc7232f9a78", [:rebar3], [], "hexpm", "25eee6d67df61960cf6a794239566599b09e17e668d3700247bc498638152521"},
-  "vex": {:hex, :vex, "0.9.0", "613ea5eb3055662e7178b83e25b2df0975f68c3d8bb67c1645f0573e1a78d606", [:mix], [], "hexpm", "c69fff44d5c8aa3f1faee71bba1dcab05dd36364c5a629df8bb11751240c857f"},
+  "vex": {:hex, :vex, "0.9.2", "fe061acc9e0907d983d46b51bf35d58176f0fe6eb7ba3b33c9336401bf42b6d1", [:mix], [], "hexpm", "76e709a9762e98c6b462dfce92e9b5dfbf712839227f2da8add6dd11549b12cb"},
   "websockex": {:hex, :websockex, "0.4.3", "92b7905769c79c6480c02daacaca2ddd49de936d912976a4d3c923723b647bf0", [:mix], [], "hexpm", "95f2e7072b85a3a4cc385602d42115b73ce0b74a9121d0d6dbbf557645ac53e4"},
 }
